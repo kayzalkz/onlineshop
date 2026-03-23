@@ -1,0 +1,212 @@
+/* --- Google Fonts --- */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap');
+
+:root {
+    --primary-gold: #d4a373;
+    --soft-cream: #fefae0;
+    --blush-pink: #faedcd;
+    --text-dark: #2b2d42;
+    --sidebar-width: 260px;
+    --bg-light: #fafafa;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--bg-light);
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, .brand-text {
+    font-family: 'Playfair Display', serif;
+    color: var(--text-dark);
+}
+
+/* --- Responsive Layout Engine --- */
+.sidebar {
+    width: var(--sidebar-width);
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: #ffffff;
+    border-right: 1px solid rgba(0,0,0,0.05);
+    z-index: 1100;
+    transition: var(--transition);
+    overflow-y: auto;
+}
+
+.main-content {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    min-height: 100vh;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+}
+
+.top-navbar {
+    background: #ffffff;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+/* --- Mobile Responsiveness (The Fix) --- */
+@media (max-width: 991px) {
+    .sidebar {
+        transform: translateX(-100%); /* Hide sidebar off-screen */
+    }
+    
+    .sidebar.active {
+        transform: translateX(0); /* Slide in when active */
+        box-shadow: 10px 0 30px rgba(0,0,0,0.1);
+    }
+
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .navbar-toggler-custom {
+        display: block !important;
+    }
+
+    /* POS Mobile Tweaks: Stack Cart above Products */
+    .product-grid-container {
+        order: 2;
+    }
+    .col-xl-5.col-lg-6 {
+        order: 1;
+        margin-bottom: 20px;
+    }
+}
+
+.navbar-toggler-custom {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-dark);
+    margin-right: 15px;
+    cursor: pointer;
+}
+
+/* --- Sidebar Navigation Links --- */
+.sidebar-nav .nav-link {
+    color: #6c757d;
+    padding: 12px 25px;
+    margin: 4px 15px;
+    border-radius: 12px;
+    transition: all 0.2s;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.sidebar-nav .nav-link i {
+    width: 25px;
+    font-size: 1.1rem;
+}
+
+.sidebar-nav .nav-link:hover, 
+.sidebar-nav .nav-link.active {
+    background-color: var(--soft-cream);
+    color: var(--primary-gold);
+    font-weight: 600;
+}
+
+/* --- Product Cards & Grid --- */
+.product-card {
+    border: none;
+    border-radius: 15px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    background: #ffffff;
+    cursor: pointer;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+}
+
+.bg-light.text-center.py-4 {
+    background-color: #fdfaf5 !important;
+    border-radius: 15px 15px 0 0;
+}
+
+/* --- Invoice & Modal (For pos.html) --- */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.4);
+    z-index: 1050;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+/* --- Ledger & Recent Sales Table --- */
+.ledger-table th {
+    color: #6b7280;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 11px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.ledger-table td {
+    padding: 15px 10px;
+    border-bottom: 1px solid #f3f4f6;
+    vertical-align: middle;
+}
+
+/* --- Action Buttons --- */
+.action-btn {
+    background: transparent;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: #6b7280;
+    cursor: pointer;
+    transition: 0.2s;
+    display: inline-block;
+}
+
+.action-btn:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.btn-primary {
+    background-color: var(--primary-gold);
+    border-color: var(--primary-gold);
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+/* --- Flash Message Animations --- */
+.alert {
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.alert.fading {
+    opacity: 0;
+    transform: translateY(-20px);
+}

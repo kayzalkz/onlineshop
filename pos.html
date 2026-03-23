@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+{% block page_title %}{{ _('Register / Checkout') }}{% endblock %}
+
+{% block content %}
+<style>
+    /* --- RESPONSIVE LAYOUT ENGINE --- */
+    .sidebar { 
+        position: fixed; top: 0; left: 0; height: 100vh; width: 260px; 
+        z-index: 1000; overflow-y: auto; background: #fff; border-right: 1px solid #eee; 
+        transition: transform 0.3s ease;
+    }
+    .main-content { 
+        margin-left: 260px; width: calc(100% - 260px); min-height: 100vh; 
+        transition: margin-left 0.3s ease, width 0.3s ease; 
+    }
+    
+    /* Mobile Fix */
+    @media (max-width: 991px) {
+        .sidebar { transform: translateX(-100%); }
+        .sidebar.active { transform: translateX(0); }
+        .main-content { margin-left: 0; width: 100%; }
+        /* Stack columns: Cart on top for mobile */
+        .product-grid-container { order: 2; }
+        .cart-column { order: 1; margin-bottom: 20px; }
+    }
+
+    /* --- YOUR ORIGINAL STYLES (NO CHANGES) --- */
+    @media print {
+        body * { visibility: hidden; }
+        #invoiceModal, #invoiceModal * { visibility: visible; }
+        #invoiceModal { position: absolute; left: 0; top: 0; width: 100%; height: 100%; margin: 0; padding: 0; background: white; }
+        .no-print { display: none !important; }
+        .a5-container { box-shadow: none !important; width: 100% !important; padding: 0 !important; }
+    }
+    .a5-container { width: 148mm; min-height: 200mm; background: white; padding: 25px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 8px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; }
+    .inv-header { display: flex; justify-content: space-between; border-bottom: 2px solid #6d28d9; padding-bottom: 15px; margin-bottom: 20px; }
+    .inv-logo img { max-height: 70px; }
+    .inv-logo h2 { margin: 10px 0 2px; font-size: 20px; color: #4c1d95; text-transform: uppercase; font-weight: bold; }
+    .inv-title { text-align: right; }
+    .inv-title h1 { margin: 0 0 5px; font-size: 26px; color: #374151; }
+    .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    .inv-table th { background: #6d28d9; color: white; padding: 10px; text-align: left; }
+    .inv-table td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; }
+    .inv-finance { width: 60%; float: right; border-collapse: collapse; margin-bottom: 30px; }
+    .balance-row th, .balance-row td { background: #f3f4f6; font-size: 16px; color: #6d28d9; padding: 12px 10px; }
+    .ledger-table th { color: #6b7280; font-weight: bold; text-transform: uppercase; font-size: 12px; border-bottom: 2px solid #e5e7eb; }
+    .ledger-table td { padding: 15px 10px; border-bottom: 1px solid #f3f4f6; }
+    .action-btn { background: transparent; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 12px; color: #6b7280; text-decoration: none; display: inline-block;}
+</style>
+
+<div class="container-fluid p-0">
+    <div class="row g-4 mb-5">
+        <div class="col-xl-7 col-lg-6 product-grid-container">
+            <div class="input-group mb-3 shadow-sm rounded-4 overflow-hidden">
+                <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="itemSearch" class="form-control border-0 py-3" placeholder="{{ _('Search items...') }}" onkeyup="searchItems()">
+            </div>
+            <div class="row g-3 overflow-auto pe-2" style="max-height: 60vh;" id="productGrid">
+                {% for p in products %}
+                <div class="col-md-4 col-6 product-card-container" data-name="{{ p.name|lower }}" data-size="{{ p.size|lower }}">
+                    <div class="card product-card h-100 shadow-sm border-0 position-relative" onclick="addToCart('{{ p.id }}', '{{ p.name }}', {{ p.selling_price }})" style="cursor: pointer;">
+                        <div class="bg-light text-center py-4 rounded-top-3">
+                            <span class="badge bg-dark position-absolute top-0 end-0 m-2">{{ p.size }}</span>
+                            <i class="fas fa-tshirt fa-3x text-muted opacity-50"></i>
+                        </div>
+                        <div class="card-body p-3 text-center">
+                            <h6 class="fw-bold mb-1 text-truncate">{{ p.name }}</h6>
+                            <span class="text-primary fw-bold">{{ "{:,.0f}".format(p.selling_price) }} MMK</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="col-xl-5 col-lg-6 cart-column">
+            {% if session.get('editing_sale_id') %}
+            <div class="alert alert-warning border-warning shadow-sm rounded-4 d-flex justify-content-between align-items-center mb-3">
+                <div><i class="fas fa-exclamation-triangle me-2"></i><strong>Editing Sale #{{ session.get('editing_sale_id') }}</strong></div>
+                <a href="{{ url_for('cancel_edit') }}" class="btn btn-sm btn-danger fw-bold rounded-pill shadow-sm">Cancel Edit</a>
+            </div>
+            {% endif %}
+
+            <div class="card border-0 shadow-sm rounded-4 bg-white sticky-top" style="top: 20px;">
+                <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0">{{ _('Current Order') }}</h5>
+                    <button class="btn btn-sm btn-outline-danger border-0 rounded-pill px-3" onclick="clearCart()">Clear</button>
+                </div>
+                <div class="card-body px-0 overflow-auto" style="max-height: 30vh;">
+                    <table class="table align-middle mb-0">
+                        <tbody id="cartBody">
+                            <tr id="emptyMsg"><td class="text-center py-5 text-muted">{{ _('Tap an item to add to bag') }}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-light border-0 p-4 rounded-bottom-4">
+                    <form action="{{ url_for('process_sale') }}" method="POST">
+                        <input type="hidden" name="total_amount" id="formTotalAmount" value="0">
+                        <input type="hidden" name="cart_data" id="formCartData" value="">
+
+                        <div class="d-flex justify-content-between align-items-end mb-3">
+                            <span class="text-muted fw-bold">{{ _('TOTAL DUE:') }}</span>
+                            <h2 class="fw-bold mb-0 text-dark" id="displayTotal">0 MMK</h2>
+                        </div>
+
+                        <div class="mb-3">
+                            <select class="form-select border-0 shadow-sm py-2" name="customer_id" id="customerSelect" onchange="calculateScenario()">
+                                <option value="" data-balance="0">-- Walk-in Customer --</option>
+                                {% for c in customers %}
+                                <option value="{{ c.id }}" data-balance="{{ c.balance }}">{{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div id="creditScenarioBox" class="mt-2 p-2 rounded-3 small d-none"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="small fw-bold text-muted mb-1">{{ _('AMOUNT TENDERED') }}</label>
+                            <input type="number" class="form-control form-control-lg border-0 shadow-sm fw-bold text-primary" name="amount_paid" id="amountPaidInput" value="0" min="0" onkeyup="calculateScenario()" required>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <select class="form-select border-0 shadow-sm" name="payment_method">
+                                    <option value="cash">CASH</option>
+                                    <option value="kpay">KPAY</option>
+                                    <option value="wave">WAVEPAY</option>
+                                    <option value="bank">BANK TRANSFER</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <input type="text" class="form-control border-0 shadow-sm" name="payment_info" placeholder="Ref / Phone No.">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-sm" id="completeBtn" disabled>
+                            <i class="fas fa-check-circle me-2"></i>{{ _('COMPLETE SALE') }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+                <h5 class="fw-bold mb-4 text-dark"><i class="fas fa-history me-2 text-primary"></i>Recent Sales</h5>
+                <div class="table-responsive">
+                    <table class="table ledger-table">
+                        <thead>
+                            <tr>
+                                <th>Ref #</th><th>Customer</th><th>Items Purchased</th><th>Amount</th><th>Payment</th><th>Status</th><th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in recent_sales[:10] %}
+                            <tr>
+                                <td class="text-muted">#{{ sale.id }}</td>
+                                <td><div class="fw-bold text-dark">{{ sale.customer.name if sale.customer else 'Walk-in' }}</div></td>
+                                <td>
+                                    {% for item in sale.items %}
+                                        <div class="small"><i class="fas fa-circle text-primary me-1" style="font-size: 8px;"></i> {{ item.product_name }} (x{{ item.quantity }})</div>
+                                    {% endfor %}
+                                </td>
+                                <td><div class="fw-bold text-dark">{{ "{:,.0f}".format(sale.total_amount) }} MMK</div></td>
+                                <td class="text-uppercase small fw-bold text-primary">{{ sale.payment_method }}</td>
+                                <td>
+                                    {% if sale.amount_paid >= sale.total_amount %}<span class="badge bg-success">PAID</span>{% else %}<span class="badge bg-danger">DEBT</span>{% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <a href="{{ url_for('receipt', sale_id=sale.id) }}" target="_blank" class="action-btn"><i class="fas fa-print"></i></a>
+                                        {% if current_user.role == 'admin' %}
+                                        <form action="{{ url_for('edit_sale', sale_id=sale.id) }}" method="POST" class="d-inline">
+                                            <button type="submit" class="action-btn text-warning"><i class="fas fa-edit"></i></button>
+                                        </form>
+                                        <form action="{{ url_for('delete_sale', sale_id=sale.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Void transaction?');">
+                                            <button type="submit" class="action-btn text-danger"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if last_sale %}
+<div class="modal fade show" id="invoiceModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.7); z-index: 1050;">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-transparent border-0">
+            <div class="d-flex justify-content-center gap-2 mb-3 no-print">
+                <button onclick="window.print()" class="btn btn-warning fw-bold px-4 rounded-3"><i class="fas fa-print me-2"></i>Print Invoice</button>
+                <button onclick="closeReceipt()" class="btn btn-light fw-bold px-4 rounded-3">Close</button>
+            </div>
+            <div class="a5-container">
+                <div class="inv-header">
+                    <div class="inv-logo">
+                        <h2>{{ company.name if company else 'BOUTIQUE SHOP' }}</h2>
+                        <p>{{ company.address if company }}<br>Phone: {{ company.phone if company }}</p>
+                    </div>
+                    <div class="inv-title"><h1>INVOICE</h1><p>#{{ last_sale.id }}</p></div>
+                </div>
+                <table class="inv-table">
+                    <thead><tr><th>Item Description</th><th style="text-align: center;">Qty</th><th>Price</th></tr></thead>
+                    <tbody>
+                        {% for item in last_sale.items %}
+                        <tr><td>{{ item.product_name }}</td><td style="text-align: center;">{{ item.quantity }}</td><td style="text-align: right;">{{ "{:,.0f}".format(item.price * item.quantity) }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div style="content: ''; display: table; clear: both;">
+                    <table class="inv-finance">
+                        <tr><th>Total Amount:</th><td>{{ "{:,.0f}".format(last_sale.total_amount) }} MMK</td></tr>
+                        <tr class="balance-row"><th>Balance Due:</th><td>{{ "{:,.0f}".format((last_sale.total_amount - last_sale.amount_paid)|abs) }} MMK</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+    function closeReceipt() { 
+        document.getElementById('invoiceModal').style.display = 'none'; 
+        window.history.replaceState({}, document.title, "{{ url_for('pos') }}");
+    }
+
+    // ORIGINAL LOGIC
+    let cart = {{ session.get('edit_cart', {}) | tojson | safe }}; 
+
+    document.addEventListener("DOMContentLoaded", function() {
+        if (Object.keys(cart).length > 0) {
+            updateCartUI();
+            let editCust = "{{ session.get('edit_customer', '') }}";
+            if (editCust && editCust !== "None") { document.getElementById('customerSelect').value = editCust; }
+            let editPaid = "{{ session.get('edit_paid', '') }}";
+            if (editPaid) { document.getElementById('amountPaidInput').value = editPaid; }
+            calculateScenario();
+        }
+    });
+
+    function searchItems() {
+        let input = document.getElementById('itemSearch').value.toLowerCase();
+        let cards = document.getElementsByClassName('product-card-container');
+        for (let card of cards) {
+            let name = card.getAttribute('data-name');
+            let size = card.getAttribute('data-size');
+            card.style.display = (name.includes(input) || size.includes(input)) ? "" : "none";
+        }
+    }
+
+    function addToCart(id, name, price) {
+        if (cart[id]) { cart[id].qty += 1; } else { cart[id] = { name: name, price: price, qty: 1 }; }
+        updateCartUI();
+    }
+
+    function adjustQty(id, change) {
+        if (cart[id]) {
+            cart[id].qty += change;
+            if (cart[id].qty <= 0) { delete cart[id]; }
+            updateCartUI();
+        }
+    }
+
+    function clearCart() { cart = {}; updateCartUI(); }
+
+    function updateCartUI() {
+        const tbody = document.getElementById('cartBody');
+        const completeBtn = document.getElementById('completeBtn');
+        
+        if (Object.keys(cart).length === 0) {
+            tbody.innerHTML = '<tr id="emptyMsg"><td class="text-center py-5 text-muted">{{ _("Tap an item to add to bag") }}</td></tr>';
+            document.getElementById('displayTotal').innerText = "0 MMK";
+            document.getElementById('formTotalAmount').value = 0;
+            document.getElementById('amountPaidInput').value = 0;
+            document.getElementById('formCartData').value = "";
+            completeBtn.disabled = true;
+            return;
+        }
+
+        tbody.innerHTML = '';
+        let total = 0;
+        let cartDataString = [];
+        for (const [id, item] of Object.entries(cart)) {
+            let subtotal = item.price * item.qty;
+            total += subtotal;
+            cartDataString.push(`${id}:${item.qty}`); 
+            tbody.innerHTML += `
+                <tr class="border-bottom">
+                    <td class="ps-3 py-2">
+                        <div class="fw-bold small">${item.name}</div>
+                        <div class="text-muted smaller">${item.price.toLocaleString()} MMK</div>
+                    </td>
+                    <td style="width: 110px;">
+                        <div class="input-group input-group-sm">
+                            <button type="button" class="btn btn-outline-secondary" onclick="adjustQty('${id}', -1)">-</button>
+                            <input type="text" class="form-control text-center bg-white" value="${item.qty}" readonly>
+                            <button type="button" class="btn btn-outline-secondary" onclick="adjustQty('${id}', 1)">+</button>
+                        </div>
+                    </td>
+                    <td class="text-end pe-3 small fw-bold">${subtotal.toLocaleString()}</td>
+                </tr>`;
+        }
+        document.getElementById('displayTotal').innerText = total.toLocaleString() + " MMK";
+        document.getElementById('formTotalAmount').value = total;
+        document.getElementById('formCartData').value = cartDataString.join(',');
+        
+        if(document.activeElement !== document.getElementById('amountPaidInput')){
+            document.getElementById('amountPaidInput').value = total; 
+        }
+        completeBtn.disabled = false;
+        calculateScenario();
+    }
+
+    function calculateScenario() {
+        const selectElement = document.getElementById('customerSelect');
+        const scenarioBox = document.getElementById('creditScenarioBox');
+        if (!selectElement.value) { scenarioBox.classList.add('d-none'); return; }
+
+        const selected = selectElement.options[selectElement.selectedIndex];
+        const currentBalance = parseFloat(selected.getAttribute('data-balance')); 
+        const totalDue = parseFloat(document.getElementById('formTotalAmount').value) || 0;
+        const amountPaid = parseFloat(document.getElementById('amountPaidInput').value) || 0;
+        const projectedBalance = currentBalance + (totalDue - amountPaid);
+
+        scenarioBox.classList.remove('d-none');
+        scenarioBox.innerHTML = `
+            <div class="d-flex justify-content-between"><span>Current Balance:</span> <b>${currentBalance.toLocaleString()} MMK</b></div>
+            <div class="d-flex justify-content-between"><span>Final Balance:</span> <b class="${projectedBalance > 0 ? 'text-danger' : 'text-success'}">${projectedBalance.toLocaleString()} MMK</b></div>`;
+    }
+</script>
+{% endblock %}
