@@ -29,11 +29,11 @@ document.addEventListener("DOMContentLoaded", function() {
     document.addEventListener('touchend', e => {
         let touchEndX = e.changedTouches[0].screenX;
         let diff = touchEndX - touchStartX;
-        if (diff > 100 && touchStartX < 50) toggleSidebar(); // Swipe Right to open
-        if (diff < -100 && sidebar.classList.contains('active')) toggleSidebar(); // Swipe Left to close
+        if (diff > 100 && touchStartX < 50) toggleSidebar(); // Swipe from edge to open
+        if (diff < -100 && sidebar.classList.contains('active')) toggleSidebar(); // Swipe left to close
     }, {passive: true});
 
-    // 3. Auto-dismiss alerts
+    // 3. Auto-dismiss flash messages
     setTimeout(() => {
         document.querySelectorAll('.alert').forEach(a => {
             a.style.opacity = '0';
