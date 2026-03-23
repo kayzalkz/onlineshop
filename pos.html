@@ -4,27 +4,25 @@
 {% block content %}
 <style>
     /* --- RESPONSIVE LAYOUT ENGINE --- */
-    .sidebar { 
-        position: fixed; top: 0; left: 0; height: 100vh; width: 260px; 
-        z-index: 1000; overflow-y: auto; background: #fff; border-right: 1px solid #eee; 
-        transition: transform 0.3s ease;
-    }
-    .main-content { 
-        margin-left: 260px; width: calc(100% - 260px); min-height: 100vh; 
-        transition: margin-left 0.3s ease, width 0.3s ease; 
+    /* Only apply the 260px margin on Desktop */
+    @media (min-width: 992px) {
+        .main-content { margin-left: 260px; width: calc(100% - 260px); }
+        .sidebar { width: 260px; transform: translateX(0); }
     }
     
-    /* Mobile Fix */
+    /* Mobile Fixes */
     @media (max-width: 991px) {
-        .sidebar { transform: translateX(-100%); }
-        .sidebar.active { transform: translateX(0); }
-        .main-content { margin-left: 0; width: 100%; }
-        /* Stack columns: Cart on top for mobile */
+        .main-content { margin-left: 0; width: 100%; min-height: 100vh; }
+        .sidebar { transform: translateX(-100%); width: 260px; }
+        .sidebar.active { transform: translateX(0); box-shadow: 10px 0 30px rgba(0,0,0,0.2); }
+        
+        /* Layout Swap: Put Cart on top so it's easier to see on phone */
         .product-grid-container { order: 2; }
         .cart-column { order: 1; margin-bottom: 20px; }
+        .sticky-top { position: relative !important; top: 0 !important; }
     }
 
-    /* --- YOUR ORIGINAL STYLES (NO CHANGES) --- */
+    /* --- ORIGINAL STYLES (NO CHANGES TO YOUR DESIGN) --- */
     @media print {
         body * { visibility: hidden; }
         #invoiceModal, #invoiceModal * { visibility: visible; }
@@ -32,6 +30,7 @@
         .no-print { display: none !important; }
         .a5-container { box-shadow: none !important; width: 100% !important; padding: 0 !important; }
     }
+
     .a5-container { width: 148mm; min-height: 200mm; background: white; padding: 25px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 8px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; }
     .inv-header { display: flex; justify-content: space-between; border-bottom: 2px solid #6d28d9; padding-bottom: 15px; margin-bottom: 20px; }
     .inv-logo img { max-height: 70px; }
@@ -55,17 +54,17 @@
                 <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
                 <input type="text" id="itemSearch" class="form-control border-0 py-3" placeholder="{{ _('Search items...') }}" onkeyup="searchItems()">
             </div>
-            <div class="row g-3 overflow-auto pe-2" style="max-height: 60vh;" id="productGrid">
+            <div class="row g-2 overflow-auto pe-2" style="max-height: 60vh;" id="productGrid">
                 {% for p in products %}
                 <div class="col-md-4 col-6 product-card-container" data-name="{{ p.name|lower }}" data-size="{{ p.size|lower }}">
                     <div class="card product-card h-100 shadow-sm border-0 position-relative" onclick="addToCart('{{ p.id }}', '{{ p.name }}', {{ p.selling_price }})" style="cursor: pointer;">
-                        <div class="bg-light text-center py-4 rounded-top-3">
+                        <div class="bg-light text-center py-3 rounded-top-3">
                             <span class="badge bg-dark position-absolute top-0 end-0 m-2">{{ p.size }}</span>
-                            <i class="fas fa-tshirt fa-3x text-muted opacity-50"></i>
+                            <i class="fas fa-tshirt fa-2x text-muted opacity-50"></i>
                         </div>
-                        <div class="card-body p-3 text-center">
-                            <h6 class="fw-bold mb-1 text-truncate">{{ p.name }}</h6>
-                            <span class="text-primary fw-bold">{{ "{:,.0f}".format(p.selling_price) }} MMK</span>
+                        <div class="card-body p-2 text-center">
+                            <h6 class="fw-bold mb-1 text-truncate" style="font-size: 0.9rem;">{{ p.name }}</h6>
+                            <span class="text-primary fw-bold small">{{ "{:,.0f}".format(p.selling_price) }} MMK</span>
                         </div>
                     </div>
                 </div>
@@ -77,7 +76,7 @@
             {% if session.get('editing_sale_id') %}
             <div class="alert alert-warning border-warning shadow-sm rounded-4 d-flex justify-content-between align-items-center mb-3">
                 <div><i class="fas fa-exclamation-triangle me-2"></i><strong>Editing Sale #{{ session.get('editing_sale_id') }}</strong></div>
-                <a href="{{ url_for('cancel_edit') }}" class="btn btn-sm btn-danger fw-bold rounded-pill shadow-sm">Cancel Edit</a>
+                <a href="{{ url_for('cancel_edit') }}" class="btn btn-sm btn-danger fw-bold rounded-pill">Cancel Edit</a>
             </div>
             {% endif %}
 
@@ -149,7 +148,7 @@
                     <table class="table ledger-table">
                         <thead>
                             <tr>
-                                <th>Ref #</th><th>Customer</th><th>Items Purchased</th><th>Amount</th><th>Payment</th><th>Status</th><th class="text-end">Actions</th>
+                                <th>Ref #</th><th>Customer</th><th>Items</th><th>Amount</th><th>Payment</th><th>Status</th><th class="text-end">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -157,16 +156,10 @@
                             <tr>
                                 <td class="text-muted">#{{ sale.id }}</td>
                                 <td><div class="fw-bold text-dark">{{ sale.customer.name if sale.customer else 'Walk-in' }}</div></td>
-                                <td>
-                                    {% for item in sale.items %}
-                                        <div class="small"><i class="fas fa-circle text-primary me-1" style="font-size: 8px;"></i> {{ item.product_name }} (x{{ item.quantity }})</div>
-                                    {% endfor %}
-                                </td>
-                                <td><div class="fw-bold text-dark">{{ "{:,.0f}".format(sale.total_amount) }} MMK</div></td>
+                                <td>{% for item in sale.items %}<div class="small">{{ item.product_name }} (x{{ item.quantity }})</div>{% endfor %}</td>
+                                <td><div class="fw-bold">{{ "{:,.0f}".format(sale.total_amount) }} MMK</div></td>
                                 <td class="text-uppercase small fw-bold text-primary">{{ sale.payment_method }}</td>
-                                <td>
-                                    {% if sale.amount_paid >= sale.total_amount %}<span class="badge bg-success">PAID</span>{% else %}<span class="badge bg-danger">DEBT</span>{% endif %}
-                                </td>
+                                <td>{% if sale.amount_paid >= sale.total_amount %}<span class="badge bg-success">PAID</span>{% else %}<span class="badge bg-danger">DEBT</span>{% endif %}</td>
                                 <td class="text-end">
                                     <div class="d-flex justify-content-end gap-2">
                                         <a href="{{ url_for('receipt', sale_id=sale.id) }}" target="_blank" class="action-btn"><i class="fas fa-print"></i></a>
@@ -207,7 +200,7 @@
                     <div class="inv-title"><h1>INVOICE</h1><p>#{{ last_sale.id }}</p></div>
                 </div>
                 <table class="inv-table">
-                    <thead><tr><th>Item Description</th><th style="text-align: center;">Qty</th><th>Price</th></tr></thead>
+                    <thead><tr><th>Description</th><th style="text-align: center;">Qty</th><th>Price</th></tr></thead>
                     <tbody>
                         {% for item in last_sale.items %}
                         <tr><td>{{ item.product_name }}</td><td style="text-align: center;">{{ item.quantity }}</td><td style="text-align: right;">{{ "{:,.0f}".format(item.price * item.quantity) }}</td></tr>
@@ -216,8 +209,8 @@
                 </table>
                 <div style="content: ''; display: table; clear: both;">
                     <table class="inv-finance">
-                        <tr><th>Total Amount:</th><td>{{ "{:,.0f}".format(last_sale.total_amount) }} MMK</td></tr>
-                        <tr class="balance-row"><th>Balance Due:</th><td>{{ "{:,.0f}".format((last_sale.total_amount - last_sale.amount_paid)|abs) }} MMK</td></tr>
+                        <tr><th>Total:</th><td>{{ "{:,.0f}".format(last_sale.total_amount) }} MMK</td></tr>
+                        <tr class="balance-row"><th>Due:</th><td>{{ "{:,.0f}".format((last_sale.total_amount - last_sale.amount_paid)|abs) }} MMK</td></tr>
                     </table>
                 </div>
             </div>
@@ -299,7 +292,7 @@
                         <div class="fw-bold small">${item.name}</div>
                         <div class="text-muted smaller">${item.price.toLocaleString()} MMK</div>
                     </td>
-                    <td style="width: 110px;">
+                    <td style="width: 100px;">
                         <div class="input-group input-group-sm">
                             <button type="button" class="btn btn-outline-secondary" onclick="adjustQty('${id}', -1)">-</button>
                             <input type="text" class="form-control text-center bg-white" value="${item.qty}" readonly>
@@ -333,8 +326,8 @@
 
         scenarioBox.classList.remove('d-none');
         scenarioBox.innerHTML = `
-            <div class="d-flex justify-content-between"><span>Current Balance:</span> <b>${currentBalance.toLocaleString()} MMK</b></div>
-            <div class="d-flex justify-content-between"><span>Final Balance:</span> <b class="${projectedBalance > 0 ? 'text-danger' : 'text-success'}">${projectedBalance.toLocaleString()} MMK</b></div>`;
+            <div class="d-flex justify-content-between"><span>Current:</span> <b>${currentBalance.toLocaleString()} MMK</b></div>
+            <div class="d-flex justify-content-between"><span>New:</span> <b class="${projectedBalance > 0 ? 'text-danger' : 'text-success'}">${projectedBalance.toLocaleString()} MMK</b></div>`;
     }
 </script>
 {% endblock %}
