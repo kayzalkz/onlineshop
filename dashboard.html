@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block page_title %}{{ _('Business Dashboard') }}{% endblock %}
+
+{% block content %}
+<style>
+    .kpi-card { transition: transform 0.3s ease, box-shadow 0.3s ease; overflow: hidden; position: relative; }
+    .kpi-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important; }
+    .kpi-icon { position: absolute; right: -15px; top: -15px; font-size: 100px; opacity: 0.04; transform: rotate(-15deg); }
+    .text-purple { color: #6d28d9; }
+    .bg-purple { background-color: #6d28d9; }
+    .bg-purple-light { background-color: #f3e8ff; color: #6d28d9; }
+    .quick-action-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; border-radius: 16px; background: white; border: 1px solid #f3f4f6; color: #4b5563; text-decoration: none; transition: 0.2s; font-weight: bold; text-align: center; }
+    .quick-action-btn i { font-size: 24px; margin-bottom: 8px; color: #6d28d9; }
+    .quick-action-btn:hover { background: #6d28d9; color: white; border-color: #6d28d9; box-shadow: 0 10px 20px rgba(109, 40, 217, 0.3); }
+    .quick-action-btn:hover i { color: white; }
+</style>
+
+<div class="container-fluid p-0">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold text-dark mb-1 fs-3 fs-md-2" style="font-family: 'Playfair Display', serif;">
+                {{ _('Welcome back') }}, {{ current_user.username|capitalize }}! 👋
+            </h2>
+            <p class="text-muted mb-0 small">{{ _("Here's what is happening with your store today.") }}</p>
+        </div>
+        <div>
+            <div class="badge bg-purple-light px-3 py-2 fs-6 rounded-pill shadow-sm border border-light w-100 text-center">
+                <i class="fas fa-calendar-day me-2"></i><span id="currentDateDisplay"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 g-md-4 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="card kpi-card shadow-sm border-0 rounded-4 p-3 p-md-4 bg-white h-100">
+                <i class="fas fa-wallet kpi-icon"></i>
+                <div class="d-flex align-items-center mb-2 mb-md-3">
+                    <div class="bg-purple-light rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                        <i class="fas fa-wallet fs-6"></i>
+                    </div>
+                    <h6 class="text-muted fw-bold text-uppercase mb-0 small">{{ _("Today's Revenue") }}</h6>
+                </div>
+                <h3 class="fw-bold text-dark mb-0 fs-4 fs-md-2">{{ "{:,.0f}".format(total_sales) }} <span class="fs-6 text-muted">MMK</span></h3>
+            </div>
+        </div>
+        
+        <div class="col-12 col-md-4">
+            <div class="card kpi-card shadow-sm border-0 rounded-4 p-3 p-md-4 bg-white h-100">
+                <i class="fas fa-boxes kpi-icon"></i>
+                <div class="d-flex align-items-center mb-2 mb-md-3">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                        <i class="fas fa-tshirt fs-6"></i>
+                    </div>
+                    <h6 class="text-muted fw-bold text-uppercase mb-0 small">{{ _('Total Items') }}</h6>
+                </div>
+                <h3 class="fw-bold text-dark mb-0 fs-4 fs-md-2">{{ "{:,.0f}".format(total_stock) }} <span class="fs-6 text-muted">Units</span></h3>
+            </div>
+        </div>
+        
+        <div class="col-12 col-md-4">
+            <div class="card kpi-card shadow-sm border-0 rounded-4 p-3 p-md-4 bg-white h-100">
+                <i class="fas fa-file-invoice-dollar kpi-icon"></i>
+                <div class="d-flex align-items-center mb-2 mb-md-3">
+                    <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                        <i class="fas fa-hand-holding-usd fs-6"></i>
+                    </div>
+                    <h6 class="text-muted fw-bold text-uppercase mb-0 small">{{ _('Unpaid Debt') }}</h6>
+                </div>
+                <h3 class="fw-bold text-danger mb-0 fs-4 fs-md-2">{{ "{:,.0f}".format(active_credit) }} <span class="fs-6 text-muted">MMK</span></h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 g-md-4">
+        <div class="col-12 col-xl-8 col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
+                <div class="card-header bg-white border-0 pt-3 pb-0 px-3 px-md-4">
+                    <h6 class="fw-bold text-dark mb-0"><i class="fas fa-chart-area text-purple me-2"></i>{{ _('7-Day Trend') }}</h6>
+                </div>
+                <div class="card-body p-2 p-md-4 w-100" style="position: relative; height: 300px;">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-4 col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
+                <div class="card-header bg-white border-0 pt-3 pb-0 px-3 px-md-4">
+                    <h6 class="fw-bold text-dark mb-0"><i class="fas fa-bolt text-warning me-2"></i>{{ _('Quick Actions') }}</h6>
+                </div>
+                <div class="card-body p-3 p-md-4">
+                    <div class="row g-2 g-md-3">
+                        <div class="col-6">
+                            <a href="{{ url_for('pos') }}" class="quick-action-btn shadow-sm h-100">
+                                <i class="fas fa-cash-register"></i>
+                                <span class="small">New Sale</span>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{{ url_for('inventory') }}" class="quick-action-btn shadow-sm h-100">
+                                <i class="fas fa-box-open"></i>
+                                <span class="small">Add Stock</span>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{{ url_for('reports') }}" class="quick-action-btn shadow-sm h-100">
+                                <i class="fas fa-file-invoice"></i>
+                                <span class="small">Reports</span>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{{ url_for('customers') }}" class="quick-action-btn shadow-sm h-100">
+                                <i class="fas fa-users"></i>
+                                <span class="small">Clients</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const dateOptions = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+        document.getElementById('currentDateDisplay').innerText = new Date().toLocaleDateString('en-US', dateOptions);
+
+        const labels = [];
+        for (let i = 6; i >= 0; i--) {
+            let d = new Date();
+            d.setDate(d.getDate() - i);
+            if (i === 0) labels.push('Today');
+            else labels.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+        }
+
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(109, 40, 217, 0.4)');
+        gradient.addColorStop(1, 'rgba(109, 40, 217, 0.0)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Revenue',
+                    data: {{ chart_data | safe }},
+                    borderColor: '#6d28d9',
+                    backgroundColor: gradient,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#6d28d9',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    fill: true,
+                    tension: 0.4 
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        grid: { color: '#f3f4f6', drawBorder: false },
+                        ticks: { font: { size: window.innerWidth < 768 ? 10 : 12 } }
+                    },
+                    x: { 
+                        grid: { display: false, drawBorder: false },
+                        ticks: { font: { size: window.innerWidth < 768 ? 10 : 12 } }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

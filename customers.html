@@ -4,9 +4,9 @@
 
 {% block content %}
 <div class="row g-4">
-    <div class="col-md-4">
+    <div class="col-12 col-lg-4 order-2 order-lg-1">
         <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
-            <div class="card-body p-4">
+            <div class="card-body p-3 p-md-4">
                 <h5 class="fw-bold mb-4" style="font-family: 'Playfair Display', serif;">
                     <i class="fas fa-user-plus text-primary me-2"></i>{{ _('New Client Profile') }}
                 </h5>
@@ -25,11 +25,11 @@
         </div>
     </div>
 
-    <div class="col-md-8">
+    <div class="col-12 col-lg-8 order-1 order-lg-2">
         <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
-            <div class="card-body p-4">
+            <div class="card-body p-3 p-md-4">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle mb-0" style="min-width: 500px;">
                         <thead class="table-light">
                             <tr>
                                 <th class="text-uppercase small fw-bold text-muted">{{ _('Client') }}</th>
@@ -45,12 +45,12 @@
                                     <div class="fw-bold text-dark">{{ customer.name }}</div>
                                     <div class="small text-muted">ID: #{{ customer.id }}</div>
                                 </td>
-                                <td>{{ customer.phone }}</td>
-                                <td class="text-end fw-bold fs-5">
+                                <td class="small">{{ customer.phone }}</td>
+                                <td class="text-end fw-bold fs-6 fs-md-5">
                                     {% if customer.balance > 0 %}
-                                        <span class="text-danger">{{ customer.balance }} <br><small class="fs-6 text-muted">{{ _('Owes Store') }}</small></span>
+                                        <span class="text-danger">{{ "{:,.0f}".format(customer.balance) }} <br><small class="fs-6 text-muted">{{ _('Owes Store') }}</small></span>
                                     {% elif customer.balance < 0 %}
-                                        <span class="text-success">{{ customer.balance|abs }} <br><small class="fs-6 text-muted">{{ _('Store Credit') }}</small></span>
+                                        <span class="text-success">{{ "{:,.0f}".format(customer.balance|abs) }} <br><small class="fs-6 text-muted">{{ _('Store Credit') }}</small></span>
                                     {% else %}
                                         <span class="text-muted">0.00</span>
                                     {% endif %}
@@ -70,35 +70,36 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
                                         <form action="/customer/repay/{{ customer.id }}" method="POST">
-    <div class="modal-body px-4">
-        <div class="mb-3">
-            <label class="form-label fw-bold">{{ _('Transaction Type') }}</label>
-            <select class="form-select bg-light border-0" name="action" required>
-                <option value="pay_debt">{{ _('Receive Debt Payment') }}</option>
-                <option value="add_credit">{{ _('Add Prepaid Store Credit') }}</option>
-            </select>
-        </div>
-        
-        <div class="mb-3">
-            <label class="form-label fw-bold">{{ _('Amount (MMK)') }}</label>
-            <input type="number" class="form-control form-control-lg bg-light border-0" name="amount" required min="1" placeholder="0.00">
-        </div>
+                                            <div class="modal-body px-4">
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-bold">{{ _('Transaction Type') }}</label>
+                                                    <select class="form-select bg-light border-0" name="action" required>
+                                                        <option value="pay_debt">{{ _('Receive Debt Payment') }}</option>
+                                                        <option value="add_credit">{{ _('Add Prepaid Store Credit') }}</option>
+                                                    </select>
+                                                </div>
+                                                
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-bold">{{ _('Amount (MMK)') }}</label>
+                                                    <input type="number" class="form-control form-control-lg bg-light border-0" name="amount" required min="1" placeholder="0.00">
+                                                </div>
 
-        <div class="mb-3">
-            <label class="form-label fw-bold">{{ _('Payment Method') }}</label>
-            <select class="form-select bg-light border-0" name="payment_method">
-                <option value="cash">CASH</option>
-                <option value="kpay">KPAY</option>
-                <option value="wave">WAVEPAY</option>
-                <option value="bank">BANK TRANSFER</option>
-            </select>
-        </div>
-    </div>
-    <div class="modal-footer border-top-0 pb-4 px-4">
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
-        <button type="submit" class="btn btn-primary px-4">{{ _('Process Payment') }}</button>
-    </div>
-</form>
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-bold">{{ _('Payment Method') }}</label>
+                                                    <select class="form-select bg-light border-0" name="payment_method">
+                                                        <option value="cash">CASH</option>
+                                                        <option value="kpay">KPAY</option>
+                                                        <option value="wave">WAVEPAY</option>
+                                                        <option value="bank">BANK TRANSFER</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer border-top-0 pb-4 px-4">
+                                                <button type="button" class="btn btn-light w-100 mb-2 d-md-none" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+                                                <button type="button" class="btn btn-light d-none d-md-inline-block" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+                                                <button type="submit" class="btn btn-primary px-4 w-100 w-md-auto">{{ _('Process Payment') }}</button>
+                                            </div>
+                                        </form>
                                     </div>
                                 </div>
                             </div>

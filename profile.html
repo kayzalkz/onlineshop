@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block page_title %}{{ _('Store Configuration') }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-10 col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 bg-white mt-1 mt-md-3">
+            <div class="card-body p-4 p-md-5">
+                <form action="{{ url_for('company_profile') }}" method="POST" enctype="multipart/form-data">
+                    <div class="text-center mb-4 mb-md-5">
+                        <div class="mb-3">
+                            {% if profile and profile.logo_filename %}
+                                <img src="{{ url_for('static', filename='uploads/' + profile.logo_filename) }}" alt="Boutique Logo" class="img-fluid shadow-sm" style="max-height: 100px; border-radius: 8px;">
+                            {% else %}
+                                <div class="d-inline-flex align-items-center justify-content-center bg-light text-muted rounded shadow-sm" style="width: 100px; height: 100px;">
+                                    <i class="fas fa-image fa-3x opacity-50"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <label class="form-label fw-bold text-muted small text-uppercase">{{ _('Update Store Logo') }}</label>
+                        <input type="file" class="form-control form-control-sm mx-auto bg-light border-0" name="logo" accept="image/*" style="max-width: 100%;">
+                        <small class="text-muted d-block mt-1">{{ _('Recommended size: 300x300px (PNG or JPG)') }}</small>
+                    </div>
+
+                    <div class="mb-3 mb-md-4">
+                        <label class="form-label text-muted small fw-bold text-uppercase"><i class="fas fa-store me-2"></i>{{ _('Store Name') }}</label>
+                        <input type="text" class="form-control form-control-lg bg-light border-0" name="name" value="{{ profile.name if profile else '' }}" required>
+                    </div>
+                    
+                    <div class="mb-3 mb-md-4">
+                        <label class="form-label text-muted small fw-bold text-uppercase"><i class="fas fa-phone me-2"></i>{{ _('Official Phone') }}</label>
+                        <input type="text" class="form-control bg-light border-0 py-2" name="phone" value="{{ profile.phone if profile else '' }}">
+                    </div>
+                    
+                    <div class="mb-4 mb-md-5">
+                        <label class="form-label text-muted small fw-bold text-uppercase"><i class="fas fa-map-marker-alt me-2"></i>{{ _('Store Address') }}</label>
+                        <textarea class="form-control bg-light border-0 py-2" name="address" rows="3">{{ profile.address if profile else '' }}</textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm py-3 text-uppercase" style="letter-spacing: 1px;">{{ _('Save Configuration') }}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

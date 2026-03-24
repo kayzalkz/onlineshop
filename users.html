@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block page_title %}{{ _('User Management') }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 bg-white">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-4"><i class="fas fa-user-shield text-primary me-2"></i>{{ _('Create Staff Account') }}</h5>
+                <form action="/users" method="POST">
+                    <input type="hidden" name="action" value="create">
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">{{ _('Username') }}</label>
+                        <input type="text" class="form-control" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">{{ _('Password') }}</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">{{ _('Role') }}</label>
+                        <select class="form-select" name="role">
+                            <option value="cashier">{{ _('Cashier') }}</option>
+                            <option value="manager">{{ _('Manager') }}</option>
+                            <option value="admin">{{ _('Admin') }}</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">{{ _('Create Account') }}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm rounded-4 bg-white">
+            <div class="card-body p-4">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>{{ _('Username') }}</th>
+                                <th>{{ _('Role') }}</th>
+                                <th class="text-end">{{ _('Actions') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr>
+                                <td class="fw-bold">{{ u.username }}</td>
+                                <td>
+                                    <span class="badge {% if u.role == 'admin' %}bg-danger{% elif u.role == 'manager' %}bg-warning{% else %}bg-primary{% endif %}">
+                                        {{ u.role | capitalize }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    {% if u.username != 'admin' %}
+                                        <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editUserModal{{ u.id }}" title="Edit User"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ u.id }}" title="Delete User"><i class="fas fa-trash"></i></button>
+                                    {% else %}
+                                        <span class="text-muted small">System Admin</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+
+                            <div class="modal fade" id="editUserModal{{ u.id }}" tabindex="-1">
+                                <div class="modal-dialog modal-sm">
+                                    <div class="modal-content border-0 rounded-4 shadow">
+                                        <form action="/users" method="POST">
+                                            <div class="modal-header border-0"><h5 class="fw-bold">Edit Account</h5></div>
+                                            <div class="modal-body bg-light text-start">
+                                                <input type="hidden" name="action" value="edit">
+                                                <input type="hidden" name="user_id" value="{{ u.id }}">
+                                                
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-bold small text-muted">Username</label>
+                                                    <input type="text" class="form-control fw-bold" value="{{ u.username }}" disabled>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-bold small text-muted">Reset Password</label>
+                                                    <input type="text" class="form-control" name="password" placeholder="Leave blank to keep current">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-bold small text-muted">Role</label>
+                                                    <select class="form-select" name="role">
+                                                        <option value="cashier" {% if u.role == 'cashier' %}selected{% endif %}>Cashier</option>
+                                                        <option value="manager" {% if u.role == 'manager' %}selected{% endif %}>Manager</option>
+                                                        <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>Admin</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer border-0"><button type="submit" class="btn btn-primary w-100 fw-bold">Save Changes</button></div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal fade" id="deleteUserModal{{ u.id }}" tabindex="-1">
+                                <div class="modal-dialog modal-sm">
+                                    <div class="modal-content border-0 rounded-4 shadow">
+                                        <form action="/users" method="POST">
+                                            <div class="modal-body text-center p-4">
+                                                <i class="fas fa-user-slash fa-3x text-danger mb-3"></i>
+                                                <h5 class="fw-bold">Remove {{ u.username }}?</h5>
+                                                <p class="text-muted small">They will no longer be able to log in. This cannot be undone.</p>
+                                                <input type="hidden" name="action" value="delete">
+                                                <input type="hidden" name="user_id" value="{{ u.id }}">
+                                                <button type="submit" class="btn btn-danger w-100 fw-bold mb-2">Yes, Remove</button>
+                                                <button type="button" class="btn btn-light w-100" data-bs-dismiss="modal">Cancel</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

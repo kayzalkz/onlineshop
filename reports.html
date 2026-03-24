@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block page_title %}{{ _('Business Analytics') }}{% endblock %}
+
+{% block content %}
+<style>
+    .ledger-table th { color: #6b7280; font-weight: bold; text-transform: uppercase; font-size: 11px; padding-bottom: 10px; border-bottom: 2px solid #e5e7eb; }
+    .ledger-table td { padding: 12px 10px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+    .item-bullet { color: #6d28d9; margin-right: 5px; font-size: 10px; }
+    .item-text { font-size: 12px; color: #4b5563; }
+    .pay-kpay { color: #6d28d9; font-weight: bold; font-size: 12px; }
+    .pay-wave { color: #2563eb; font-weight: bold; font-size: 12px; }
+    .pay-cash { color: #059669; font-weight: bold; font-size: 12px; }
+    .status-badge { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
+    .status-debt { background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
+    .action-btn { background: transparent; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 10px; color: #6b7280; cursor: pointer; transition: 0.2s; text-decoration: none; display: inline-block;}
+    .action-btn:hover { background: #f3f4f6; color: #111827; }
+    .action-btn.delete:hover { color: #ef4444; border-color: #ef4444; background: #fef2f2; }
+    
+    /* Swipeable Tabs for Mobile */
+    .nav-tabs-scrollable { display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; border-bottom: 1px solid #dee2e6; margin-bottom: 1rem;}
+    .nav-tabs-scrollable::-webkit-scrollbar { display: none; }
+    .nav-tabs-scrollable .nav-link { color: #6b7280; font-weight: bold; border: none; padding: 12px 15px; white-space: nowrap; }
+    .nav-tabs-scrollable .nav-link.active { color: #6d28d9; border-bottom: 3px solid #6d28d9; background: transparent; }
+</style>
+
+<ul class="nav nav-tabs-scrollable" id="reportTabs" role="tablist">
+  <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overview" type="button">Overview & Ledger</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#pl" type="button">Profit & Loss</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#stock" type="button">Inventory Val.</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#adjust" type="button">Stock Logs</button></li>
+</ul>
+
+<div class="tab-content" id="reportTabsContent">
+
+    <div class="tab-pane fade show active" id="overview" role="tabpanel">
+        <div class="row g-3 g-md-4 mb-4">
+            <div class="col-6 col-md-3"><div class="card border-0 shadow-sm rounded-4 p-3 border-start border-primary border-4 h-100"><small class="text-muted fw-bold text-uppercase" style="font-size: 10px;">Today's Revenue</small><h4 class="fw-bold mb-0 fs-5 fs-md-4">{{ "{:,.0f}".format(daily_rev) }} MMK</h4></div></div>
+            <div class="col-6 col-md-3"><div class="card border-0 shadow-sm rounded-4 p-3 border-start border-success border-4 h-100"><small class="text-muted fw-bold text-uppercase" style="font-size: 10px;">Cash Drawer</small><h4 class="fw-bold mb-0 text-success fs-5 fs-md-4">{{ "{:,.0f}".format(cash_total) }} MMK</h4></div></div>
+            <div class="col-6 col-md-3"><div class="card border-0 shadow-sm rounded-4 p-3 border-start border-info border-4 h-100"><small class="text-muted fw-bold text-uppercase" style="font-size: 10px;">Digital Paid</small><h4 class="fw-bold mb-0 text-info fs-5 fs-md-4">{{ "{:,.0f}".format(digital_total) }} MMK</h4></div></div>
+            <div class="col-6 col-md-3"><div class="card border-0 shadow-sm rounded-4 p-3 border-start border-danger border-4 h-100"><small class="text-muted fw-bold text-uppercase" style="font-size: 10px;">Unpaid Credit</small><h4 class="fw-bold mb-0 text-danger fs-5 fs-md-4">{{ "{:,.0f}".format(credit_total) }} MMK</h4></div></div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-3 gap-3">
+                <h5 class="fw-bold mb-0 text-dark">Sales Ledger</h5>
+                
+                <div class="d-flex flex-column flex-md-row gap-2 align-items-stretch align-items-md-center">
+                    <div id="customDateRange" class="d-none align-items-center gap-1 bg-light p-1 rounded-3 border">
+                        <input type="date" id="startDate" class="form-control form-control-sm border-0 bg-transparent" onchange="filterTableByDate()">
+                        <span class="text-muted fw-bold" style="font-size: 10px;">to</span>
+                        <input type="date" id="endDate" class="form-control form-control-sm border-0 bg-transparent" onchange="filterTableByDate()">
+                    </div>
+
+                    <select class="form-select form-select-sm border-0 bg-light fw-bold px-3 py-2" id="dateFilter" onchange="toggleCustomDate()">
+                        <option value="all">All Time</option>
+                        <option value="daily">Today</option>
+                        <option value="weekly">This Week</option>
+                        <option value="monthly">This Month</option>
+                        <option value="yearly">This Year</option>
+                        <option value="custom">Custom Range...</option>
+                    </select>
+
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('export_excel') }}" class="btn btn-sm btn-outline-success fw-bold w-100 w-md-auto"><i class="fas fa-file-excel"></i> Excel</a>
+                        <a href="{{ url_for('export_pdf') }}" class="btn btn-sm btn-outline-danger fw-bold w-100 w-md-auto"><i class="fas fa-file-pdf"></i> PDF</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table ledger-table" id="salesTable" style="min-width: 900px;">
+                    <thead>
+                        <tr>
+                            <th>Ref #</th><th>Customer</th><th>Items Purchased</th><th>Amount</th><th>Payment</th><th>Date</th><th>Status</th><th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in all_sales %}
+                        <tr class="sale-row" data-date="{{ sale.timestamp.strftime('%Y-%m-%d') }}">
+                            <td class="text-muted">#{{ sale.id }}</td>
+                            <td><div class="fw-bold text-dark">{{ sale.customer.name if sale.customer else 'Walk-in' }}</div></td>
+                            <td>
+                                {% for item in sale.items %}
+                                    <div class="item-text text-wrap"><i class="fas fa-circle item-bullet"></i> {{ item.product_name }} <span class="text-primary fw-bold">(x{{ item.quantity }})</span></div>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                <div class="fw-bold text-dark fs-6">{{ "{:,.0f}".format(sale.total_amount) }} MMK</div>
+                                <small class="text-muted" style="font-size: 10px;">PAID: {{ "{:,.0f}".format(sale.amount_paid) }} MMK</small>
+                            </td>
+                            <td class="{% if sale.payment_method == 'kpay' %}pay-kpay{% elif sale.payment_method == 'wave' %}pay-wave{% else %}pay-cash{% endif %} text-uppercase">{{ sale.payment_method }}</td>
+                            <td class="text-danger fw-bold" style="font-size: 11px;">{{ sale.timestamp.strftime('%b %d, %Y') }}</td>
+                            <td>{% if sale.amount_paid >= sale.total_amount %}<span class="status-badge">✔ PAID</span>{% else %}<span class="status-debt">⚠ DEBT</span>{% endif %}</td>
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end gap-1">
+                                    <a href="{{ url_for('receipt', sale_id=sale.id) }}" target="_blank" class="action-btn" title="Print"><i class="fas fa-print"></i></a>
+                                    {% if current_user.role == 'admin' %}
+                                    <form action="{{ url_for('edit_sale', sale_id=sale.id) }}" method="POST" class="d-inline"><button type="submit" class="action-btn text-warning" title="Edit"><i class="fas fa-edit"></i></button></form>
+                                    <form action="{{ url_for('delete_sale', sale_id=sale.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Permanently void this transaction?');"><button type="submit" class="action-btn delete"><i class="fas fa-trash"></i></button></form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="pl" role="tabpanel">
+        <div class="row g-4 justify-content-center">
+            <div class="col-12 col-md-10 col-lg-8">
+                <div class="card border-0 shadow-sm rounded-4 bg-white p-4 p-md-5 text-center">
+                    <h4 class="fw-bold text-dark mb-4">Total Profit & Loss Statement</h4>
+                    <div class="d-flex justify-content-between border-bottom py-2 py-md-3">
+                        <span class="text-muted fw-bold">Gross Revenue:</span><span class="fw-bold text-dark fs-5">{{ "{:,.0f}".format(total_revenue) }} MMK</span>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom py-2 py-md-3">
+                        <span class="text-muted fw-bold">Cost of Goods (COGS):</span><span class="fw-bold text-danger fs-5">- {{ "{:,.0f}".format(total_cost) }} MMK</span>
+                    </div>
+                    <div class="d-flex justify-content-between bg-light rounded-3 mt-3 mt-md-4 p-3 p-md-4">
+                        <h4 class="fw-bold text-dark mb-0 fs-5 fs-md-4">NET PROFIT:</h4><h4 class="fw-bold text-success mb-0 fs-5 fs-md-4">{{ "{:,.0f}".format(net_profit) }} MMK</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="stock" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4">
+            <h6 class="fw-bold mb-3 text-dark">Current Stock Valuation</h6>
+            <div class="table-responsive">
+                <table class="table ledger-table" style="min-width: 600px;">
+                    <thead><tr><th>Product Name</th><th>Category</th><th class="text-center">Stock</th><th class="text-end">Cost Value</th><th class="text-end">Revenue Value</th></tr></thead>
+                    <tbody>
+                        {% for p in products %}
+                        <tr>
+                            <td class="fw-bold">{{ p.name }} <div class="mt-1"><span class="badge bg-light text-dark border">{{ p.size }}</span></div></td>
+                            <td class="text-muted small">{{ p.category }}</td>
+                            <td class="text-center fw-bold fs-6 {% if p.stock <= 5 %}text-danger{% endif %}">{{ p.stock }}</td>
+                            <td class="text-end small">{{ "{:,.0f}".format(p.stock * p.purchase_price) }} MMK</td>
+                            <td class="text-end text-success fw-bold small">{{ "{:,.0f}".format(p.stock * p.selling_price) }} MMK</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="adjust" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4">
+            <h6 class="fw-bold mb-3 text-dark"><i class="fas fa-clipboard-list me-2 text-primary"></i>Stock Adjustments</h6>
+            <div class="table-responsive">
+                <table class="table ledger-table" style="min-width: 500px;">
+                    <thead><tr><th>Date & Time</th><th>Item Name</th><th class="text-center">Adjustment</th><th>Reason</th></tr></thead>
+                    <tbody>
+                        {% for log in stock_logs %}
+                        <tr>
+                            <td class="text-muted small">{{ log.timestamp.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                            <td class="fw-bold text-dark small">{{ log.product.name }}</td>
+                            <td class="text-center">
+                                <span class="badge {% if log.quantity > 0 %}bg-success{% else %}bg-danger{% endif %} rounded-pill px-2 py-1">
+                                    {% if log.quantity > 0 %}+{% endif %}{{ log.quantity }}
+                                </span>
+                            </td>
+                            <td class="text-muted small">{{ log.action }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center py-4 text-muted">No stock adjustments recorded.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleCustomDate() {
+    const filter = document.getElementById('dateFilter').value;
+    const customDiv = document.getElementById('customDateRange');
+    
+    if (filter === 'custom') {
+        customDiv.classList.remove('d-none');
+        customDiv.classList.add('d-flex');
+    } else {
+        customDiv.classList.add('d-none');
+        customDiv.classList.remove('d-flex');
+        filterTableByDate(); 
+    }
+}
+
+function filterTableByDate() {
+    const filter = document.getElementById('dateFilter').value;
+    const rows = document.getElementsByClassName('sale-row');
+    const today = new Date();
+    
+    const offset = today.getTimezoneOffset() * 60000;
+    const localToday = new Date(today.getTime() - offset);
+    const todayString = localToday.toISOString().split('T')[0];
+    
+    const firstDayOfWeek = new Date(localToday);
+    firstDayOfWeek.setDate(localToday.getDate() - localToday.getDay());
+    const firstDayString = firstDayOfWeek.toISOString().split('T')[0];
+
+    const currentMonth = localToday.getMonth();
+    const currentYear = localToday.getFullYear();
+
+    const startInput = document.getElementById('startDate').value;
+    const endInput = document.getElementById('endDate').value;
+
+    for (let row of rows) {
+        let rowDateStr = row.getAttribute('data-date');
+        let rowDateObj = new Date(rowDateStr + 'T12:00:00Z'); 
+        let showRow = true;
+
+        if (filter === 'daily') { showRow = (rowDateStr === todayString); } 
+        else if (filter === 'weekly') { showRow = (rowDateStr >= firstDayString); } 
+        else if (filter === 'monthly') { showRow = (rowDateObj.getUTCMonth() === currentMonth && rowDateObj.getUTCFullYear() === currentYear); } 
+        else if (filter === 'yearly') { showRow = (rowDateObj.getUTCFullYear() === currentYear); } 
+        else if (filter === 'custom' && startInput && endInput) {
+            showRow = (rowDateStr >= startInput && rowDateStr <= endInput);
+        }
+
+        row.style.display = showRow ? "" : "none";
+    }
+}
+</script>
+{% endblock %}
