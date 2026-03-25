@@ -11,11 +11,11 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table table-hover align-middle" style="min-width: 800px;">
+        <table class="table table-hover align-middle" style="min-width: 900px;">
             <thead class="text-uppercase text-muted small" style="background: #f9fafb;">
                 <tr>
                     <th class="py-3 text-nowrap">{{ _('Item Name & Specs') }}</th>
-                    <th class="py-3">{{ _('Category') }}</th>
+                    <th class="py-3">{{ _('Supplier') }}</th>
                     <th class="py-3 text-end text-nowrap">{{ _('Purchase Cost') }}</th>
                     <th class="py-3 text-end text-nowrap">{{ _('Selling Price') }}</th>
                     <th class="py-3 text-center">{{ _('Margin') }}</th>
@@ -31,9 +31,16 @@
                         <div class="mt-1">
                             <span class="badge bg-light text-dark border">{{ p.size }}</span>
                             {% if p.color %}<span class="badge bg-secondary">{{ p.color }}</span>{% endif %}
+                            <span class="badge bg-light text-muted border border-secondary border-opacity-25">{{ p.category }}</span>
                         </div>
                     </td>
-                    <td class="text-muted small">{{ p.category }}</td>
+                    <td class="text-muted small">
+                        {% if p.supplier %}
+                            <span class="fw-bold text-primary"><i class="fas fa-truck me-1"></i>{{ p.supplier.name }}</span>
+                        {% else %}
+                            <span class="text-muted fst-italic">Unlinked</span>
+                        {% endif %}
+                    </td>
                     <td class="text-end text-danger small">{{ "{:,.0f}".format(p.purchase_price) }}</td>
                     <td class="text-end text-success fw-bold">{{ "{:,.0f}".format(p.selling_price) }}</td>
                     <td class="text-center">
@@ -67,7 +74,23 @@
                                     <div class="mb-3"><label class="small fw-bold">{{ _('Name') }}</label><input type="text" name="name" class="form-control" value="{{ p.name }}" required></div>
                                     
                                     <div class="row g-2 mb-3">
-                                        <div class="col-4">
+                                        <div class="col-6">
+                                            <label class="small fw-bold">{{ _('Supplier') }}</label>
+                                            <select name="supplier_id" class="form-select px-1">
+                                                <option value="">-- No Supplier --</option>
+                                                {% for s in suppliers %}
+                                                    <option value="{{ s.id }}" {% if p.supplier_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="small fw-bold">{{ _('Category') }}</label>
+                                            <input type="text" name="category" class="form-control" value="{{ p.category }}">
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
                                             <label class="small fw-bold">{{ _('Size') }}</label>
                                             <select name="size" class="form-select px-1">
                                                 <option value="Free Size" {% if p.size == 'Free Size' %}selected{% endif %}>Free</option>
@@ -80,8 +103,7 @@
                                                 <option value="XXXL" {% if p.size == 'XXXL' %}selected{% endif %}>XXXL</option>
                                             </select>
                                         </div>
-                                        <div class="col-4"><label class="small fw-bold">{{ _('Color') }}</label><input type="text" name="color" class="form-control" value="{{ p.color }}"></div>
-                                        <div class="col-4"><label class="small fw-bold">{{ _('Category') }}</label><input type="text" name="category" class="form-control" value="{{ p.category }}"></div>
+                                        <div class="col-6"><label class="small fw-bold">{{ _('Color') }}</label><input type="text" name="color" class="form-control" value="{{ p.color }}"></div>
                                     </div>
 
                                     <div class="row g-2">
@@ -155,7 +177,23 @@
                     </div>
                     
                     <div class="row g-2 mb-3">
-                        <div class="col-4">
+                        <div class="col-6">
+                            <label class="small fw-bold">{{ _('Supplier') }}</label>
+                            <select name="supplier_id" class="form-select px-1">
+                                <option value="">-- No Supplier --</option>
+                                {% for s in suppliers %}
+                                    <option value="{{ s.id }}">{{ s.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold">{{ _('Category') }}</label>
+                            <input type="text" name="category" class="form-control" placeholder="e.g. Shirts">
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
                             <label class="small fw-bold">{{ _('Size') }}</label>
                             <select name="size" class="form-select px-1">
                                 <option value="Free Size">{{ _('Free') }}</option>
@@ -168,13 +206,9 @@
                                 <option value="XXXL">XXXL</option>
                             </select>
                         </div>
-                        <div class="col-4">
+                        <div class="col-6">
                             <label class="small fw-bold">{{ _('Color') }}</label>
                             <input type="text" name="color" class="form-control" placeholder="e.g. Red">
-                        </div>
-                        <div class="col-4">
-                            <label class="small fw-bold">{{ _('Category') }}</label>
-                            <input type="text" name="category" class="form-control" placeholder="e.g. Shirts">
                         </div>
                     </div>
 
