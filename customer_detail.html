@@ -4,37 +4,63 @@
 {% block content %}
 <style>
     /* --- PROFESSIONAL STATEMENT STYLES --- */
-    .statement-container { background: white; border-radius: 8px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); font-family: 'Inter', sans-serif; }
-    .stmt-header { display: flex; justify-content: space-between; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 30px; }
-    .company-info h2 { font-weight: 800; color: #1e293b; margin: 0; }
+    .statement-container { 
+        background: white; 
+        border-radius: 12px; 
+        padding: 50px; 
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); 
+        font-family: 'Inter', sans-serif; 
+        border: 1px solid #e2e8f0; 
+    }
+    .stmt-header { display: flex; justify-content: space-between; border-bottom: 3px solid #4f46e5; padding-bottom: 20px; margin-bottom: 40px; }
+    .company-info h2 { font-weight: 800; color: #1e293b; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
     .stmt-title { text-align: right; }
-    .stmt-title h1 { font-weight: 900; color: #4f46e5; margin: 0; font-size: 2.5rem; letter-spacing: -1px; }
+    .stmt-title h1 { font-weight: 900; color: #4f46e5; margin: 0; font-size: 2.8rem; letter-spacing: -1px; }
 
     .ledger-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    .ledger-table th { background: #f8fafc; color: #64748b; text-transform: uppercase; font-size: 11px; font-weight: 700; padding: 12px 15px; border-bottom: 2px solid #e2e8f0; }
+    .ledger-table th { background: #f8fafc; color: #475569; text-transform: uppercase; font-size: 10px; font-weight: 800; padding: 15px; border-bottom: 2px solid #e2e8f0; letter-spacing: 1px; }
     .ledger-table td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #334155; }
-    .num { text-align: right; font-family: 'Courier New', Courier, monospace; font-weight: 600; }
+    .num { text-align: right; font-family: 'JetBrains Mono', 'Courier New', monospace; font-weight: 600; }
     
-    .summary-box { background: #f8fafc; border-radius: 12px; padding: 20px; margin-top: 30px; display: flex; justify-content: flex-end; }
-    .summary-item { text-align: right; margin-left: 40px; }
-    .summary-item label { display: block; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; }
-    .summary-item span { font-size: 1.2rem; font-weight: 800; color: #1e293b; }
+    .summary-box { background: #4f46e5; color: white; border-radius: 12px; padding: 25px; margin-top: 40px; display: flex; justify-content: flex-end; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2); }
+    .summary-item { text-align: right; margin-left: 50px; }
+    .summary-item label { display: block; font-size: 10px; color: rgba(255,255,255,0.7); font-weight: 700; text-transform: uppercase; margin-bottom: 5px; }
+    .summary-item span { font-size: 1.4rem; font-weight: 800; }
 
-    /* --- PRINT MODE OVERRIDE --- */
+    /* --- CRITICAL FIX: REMOVE BROWSER HEADERS/FOOTERS --- */
     @media print {
-        @page { size: A4; margin: 1cm; }
-        body * { visibility: hidden; }
-        .printable-area, .printable-area * { visibility: visible; }
-        .printable-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0; box-shadow: none; }
+        @page { 
+            size: A4; 
+            margin: 0mm; /* This removes the URL and Page Numbers */
+        }
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background: white;
+            visibility: hidden;
+        }
+        .printable-area { 
+            visibility: visible;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20mm !important; /* We create our own margins inside the page */
+            box-shadow: none !important;
+            border: none !important;
+        }
+        .printable-area * { visibility: visible; }
+        
+        /* Force browser to print background colors and borders */
+        .stmt-header { border-bottom: 3px solid #4f46e5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .summary-box { background: #4f46e5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: white !important; }
         .no-print { display: none !important; }
-        .card, .statement-container { border: none !important; }
-        .ledger-table th { background: #eeeeee !important; -webkit-print-color-adjust: exact; }
     }
 </style>
 
 <div class="no-print d-flex justify-content-between align-items-center mb-4">
-    <a href="{{ url_for('customers') }}" class="btn btn-light border fw-bold px-4 rounded-pill"><i class="fas fa-arrow-left me-2"></i>Back to Clients</a>
-    <button onclick="window.print()" class="btn btn-primary fw-bold px-4 rounded-pill shadow"><i class="fas fa-print me-2"></i>Print Official Statement</button>
+    <a href="{{ url_for('customers') }}" class="btn btn-light border fw-bold px-4 rounded-pill shadow-sm"><i class="fas fa-arrow-left me-2"></i>Back to Clients</a>
+    <button onclick="window.print()" class="btn btn-dark fw-bold px-4 rounded-pill shadow"><i class="fas fa-print me-2"></i>Print Official Statement</button>
 </div>
 
 <div class="statement-container printable-area">
@@ -45,44 +71,44 @@
         </div>
         <div class="stmt-title">
             <h1>STATEMENT</h1>
-            <p class="text-muted fw-bold">Date: {{ now.strftime('%d %b, %Y') if now else '' }}</p>
+            <p class="text-muted fw-bold mb-0">Issued: {{ now.strftime('%d %b, %Y') if now else '' }}</p>
         </div>
     </div>
 
     <div class="row mb-5">
-        <div class="col-6">
-            <label class="text-muted small fw-bold text-uppercase d-block mb-1">Bill To:</label>
-            <h5 class="fw-bold mb-0">{{ customer.name }}</h5>
-            <p class="text-muted">{{ customer.phone }}</p>
+        <div class="col-7">
+            <label class="text-muted small fw-bold text-uppercase d-block mb-1">Statement For:</label>
+            <h4 class="fw-bold mb-0 text-dark">{{ customer.name }}</h4>
+            <p class="text-muted fs-6 mb-0">{{ customer.phone }}</p>
         </div>
-        <div class="col-6 text-end">
-            <label class="text-muted small fw-bold text-uppercase d-block mb-1">Customer Account ID:</label>
-            <h5 class="fw-bold">#ACC-00{{ customer.id }}</h5>
+        <div class="col-5 text-end">
+            <label class="text-muted small fw-bold text-uppercase d-block mb-1">Account Summary:</label>
+            <div class="badge bg-light text-dark border p-2 px-3 rounded-pill fw-bold">ID: #ACC-{{ "{:04d}".format(customer.id) }}</div>
         </div>
     </div>
 
     <table class="ledger-table">
         <thead>
             <tr>
-                <th style="width: 15%;">Date</th>
-                <th style="width: 15%;">Ref No.</th>
-                <th>Description</th>
-                <th class="num" style="width: 15%;">Debit (Charge)</th>
-                <th class="num" style="width: 15%;">Credit (Paid)</th>
+                <th style="width: 12%;">Date</th>
+                <th style="width: 15%;">Reference</th>
+                <th>Transaction Details</th>
+                <th class="num" style="width: 15%;">Debit (+)</th>
+                <th class="num" style="width: 15%;">Credit (-)</th>
                 <th class="num" style="width: 15%;">Balance</th>
             </tr>
         </thead>
         <tbody>
             {% for row in history %}
             <tr>
-                <td>{{ row.date.strftime('%d/%m/%Y') }}</td>
-                <td class="fw-bold text-primary">{{ row.ref }}</td>
+                <td class="text-muted">{{ row.date.strftime('%d %b %y') }}</td>
+                <td class="fw-bold text-dark">{{ row.ref }}</td>
                 <td class="small">{{ row.desc }}</td>
                 <td class="num">{{ "{:,.0f}".format(row.debit) if row.debit > 0 else '-' }}</td>
                 <td class="num text-success">{{ "{:,.0f}".format(row.credit) if row.credit > 0 else '-' }}</td>
                 <td class="num {% if row.running_bal > 0 %}text-danger{% elif row.running_bal < 0 %}text-primary{% endif %}">
                     {{ "{:,.0f}".format(row.running_bal|abs) }}
-                    <small style="font-size: 10px;">{{ 'DR' if row.running_bal > 0 else ('CR' if row.running_bal < 0 else '') }}</small>
+                    <small class="fw-bold" style="font-size: 9px;">{{ 'DR' if row.running_bal > 0 else ('CR' if row.running_bal < 0 else '') }}</small>
                 </td>
             </tr>
             {% endfor %}
@@ -91,23 +117,24 @@
 
     <div class="summary-box">
         <div class="summary-item">
-            <label>Total Purchases</label>
+            <label>Lifetime Purchases</label>
             <span>{{ "{:,.0f}".format(total_spent) }}</span>
         </div>
         <div class="summary-item">
-            <label>Current Status</label>
+            <label>Final Account Balance</label>
             {% if customer.balance > 0 %}
-                <span class="text-danger">{{ "{:,.0f}".format(customer.balance) }} (Owed)</span>
+                <span>{{ "{:,.0f}".format(customer.balance) }} <small class="fs-6">DR</small></span>
             {% elif customer.balance < 0 %}
-                <span class="text-primary">{{ "{:,.0f}".format(customer.balance|abs) }} (Credit)</span>
+                <span>{{ "{:,.0f}".format(customer.balance|abs) }} <small class="fs-6">CR</small></span>
             {% else %}
-                <span class="text-success">Cleared (0.00)</span>
+                <span>0.00</span>
             {% endif %}
         </div>
     </div>
 
-    <div class="mt-5 pt-5 text-center border-top no-print-visible">
-        <p class="small text-muted">This is a computer-generated statement of account. No signature is required.</p>
+    <div class="mt-5 pt-4 text-center border-top">
+        <p class="small text-muted mb-1">Thank you for your business!</p>
+        <p style="font-size: 10px;" class="text-uppercase fw-bold text-muted">This is an automated financial record generated by KZL Boutique Management System.</p>
     </div>
 </div>
 {% endblock %}
