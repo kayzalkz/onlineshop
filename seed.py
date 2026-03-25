@@ -1,4 +1,4 @@
-from app import app, db, User, Company, Supplier, Product, Customer, Sale, SaleItem, PurchaseOrder, POItem, StockLog, bcrypt, get_mmt_time
+from app import app, db, User, Role, Company, Supplier, Product, Customer, Sale, SaleItem, PurchaseOrder, POItem, StockLog, SupplierPayment, Expense, bcrypt, get_mmt_time
 from datetime import timedelta
 from decimal import Decimal
 import random
@@ -12,11 +12,26 @@ def run_seed():
         db.create_all()
 
         # ==========================================
-        # 1. ADMIN & COMPANY CONFIG
+        # 1. ADMIN ROLE, USER & COMPANY CONFIG
         # ==========================================
-        print("Creating Admin & Company...")
+        print("Creating Admin Role, User & Company...")
+        
+        # NEW: Create the Master System Admin Role First
+        admin_role = Role(
+            name='System Admin',
+            pos_access=True,
+            inventory_access=True,
+            supplier_access=True,
+            report_access=True,
+            manage_users_access=True
+        )
+        db.session.add(admin_role)
+        db.session.flush() # Flush to get the admin_role.id
+
+        # NEW: Link the user to the role_id instead of a text 'role'
         admin_pw = bcrypt.generate_password_hash('admin123').decode('utf-8')
-        db.session.add(User(username='admin', password_hash=admin_pw, role='admin'))
+        db.session.add(User(username='admin', password_hash=admin_pw, role_id=admin_role.id))
+        
         db.session.add(Company(name="KZL Premium Boutique", phone="09-123456789", address="Yangon, Myanmar"))
         
         # ==========================================
