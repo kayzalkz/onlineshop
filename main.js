@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", function() {
-    
-    // --- 1. SIDEBAR & MOBILE MENU LOGIC ---
+    // --- SIDEBAR & MOBILE MENU LOGIC ---
     const sidebar = document.querySelector('.sidebar');
     const toggleBtn = document.getElementById('sidebarToggle');
     const body = document.body;
@@ -20,9 +19,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if (toggleBtn) {
         toggleBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            toggleSidebar();
+            e.preventDefault(); e.stopPropagation(); toggleSidebar();
         });
     }
 
@@ -38,16 +35,14 @@ document.addEventListener("DOMContentLoaded", function() {
         if (diff < -100 && sidebar.classList.contains('active')) toggleSidebar(); 
     }, {passive: true});
 
-    // --- 2. AUTO-DISMISS ALERTS (IGNORE .keep-alert) ---
+    // Auto-dismiss alerts (Ignore .keep-alert)
     setTimeout(() => {
         document.querySelectorAll('.alert:not(.keep-alert)').forEach(a => {
-            a.style.transition = 'opacity 0.5s ease';
-            a.style.opacity = '0';
-            setTimeout(() => a.remove(), 500);
+            a.style.transition = 'opacity 0.5s ease'; a.style.opacity = '0'; setTimeout(() => a.remove(), 500);
         });
     }, 4000);
 
-    // --- 3. INITIALIZE CART FOR SAFE EDIT ---
+    // INIT CART
     if (typeof cart !== 'undefined' && Object.keys(cart).length > 0) {
         updateCartUI();
         if (typeof editCust !== 'undefined' && editCust !== "None" && editCust !== "") { 
@@ -59,9 +54,6 @@ document.addEventListener("DOMContentLoaded", function() {
         calculateScenario();
     }
 });
-
-
-// --- POS FUNCTIONS ---
 
 function closeReceipt() { 
     document.getElementById('invoiceModal').style.display = 'none'; 
@@ -78,22 +70,14 @@ function searchItems() {
     }
 }
 
-// Added maxStock parameter to prevent selling more than inventory
 function addToCart(id, name, price, maxStock) {
     if (cart[id]) {
-        // Enforce limit if we know it (fallback to 999 for editing old items)
         let limit = maxStock !== undefined ? maxStock : (cart[id].maxStock || 999);
-        if (cart[id].qty < limit) {
-            cart[id].qty += 1;
-        } else {
-            alert("Only " + limit + " items left in stock!");
-        }
+        if (cart[id].qty < limit) { cart[id].qty += 1; } 
+        else { alert("Only " + limit + " items left in stock!"); }
     } else {
-        if (maxStock > 0 || maxStock === undefined) {
-            cart[id] = { name: name, price: price, qty: 1, maxStock: maxStock };
-        } else {
-            alert("This item is out of stock!");
-        }
+        if (maxStock > 0 || maxStock === undefined) { cart[id] = { name: name, price: price, qty: 1, maxStock: maxStock }; } 
+        else { alert("This item is out of stock!"); }
     }
     updateCartUI();
 }
@@ -102,12 +86,7 @@ function adjustQty(id, change) {
     if (cart[id]) {
         let newQty = cart[id].qty + change;
         let limit = cart[id].maxStock || 999;
-        
-        // Enforce limit on the '+' button
-        if (newQty > limit) {
-            alert("Cannot exceed available stock (" + limit + ").");
-            return;
-        }
+        if (newQty > limit) { alert("Cannot exceed available stock (" + limit + ")."); return; }
         
         cart[id].qty = newQty;
         if (cart[id].qty <= 0) { delete cart[id]; }
@@ -115,10 +94,7 @@ function adjustQty(id, change) {
     }
 }
 
-function clearCart() { 
-    cart = {}; 
-    updateCartUI(); 
-}
+function clearCart() { cart = {}; updateCartUI(); }
 
 function updateCartUI() {
     const tbody = document.getElementById('cartBody');
@@ -163,7 +139,6 @@ function updateCartUI() {
     document.getElementById('formTotalAmount').value = total;
     document.getElementById('formCartData').value = cartDataString.join(',');
     
-    // Auto-fill payment if user isn't currently typing in the box
     if(document.activeElement !== document.getElementById('amountPaidInput')){
         document.getElementById('amountPaidInput').value = total; 
     }
@@ -175,20 +150,48 @@ function updateCartUI() {
 function calculateScenario() {
     const selectElement = document.getElementById('customerSelect');
     const scenarioBox = document.getElementById('creditScenarioBox');
-    
-    if (!selectElement || !selectElement.value) { 
-        if(scenarioBox) scenarioBox.classList.add('d-none'); 
-        return; 
-    }
-
-    const selected = selectElement.options[selectElement.selectedIndex];
-    const currentBalance = parseFloat(selected.getAttribute('data-balance')); 
     const totalDue = parseFloat(document.getElementById('formTotalAmount').value) || 0;
     const amountPaid = parseFloat(document.getElementById('amountPaidInput').value) || 0;
-    const projectedBalance = currentBalance + (totalDue - amountPaid);
+    
+    if(scenarioBox) scenarioBox.classList.remove('d-none');
 
-    scenarioBox.classList.remove('d-none');
-    scenarioBox.innerHTML = `
-        <div class="d-flex justify-content-between"><span>Current:</span> <b>${currentBalance.toLocaleString()} MMK</b></div>
-        <div class="d-flex justify-content-between"><span>New:</span> <b class="${projectedBalance > 0 ? 'text-danger' : 'text-success'}">${projectedBalance.toLocaleString()} MMK</b></div>`;
+    // 1. VIP CUSTOMER LOGIC (Debt vs Store Credit)
+    if (selectElement && selectElement.value !== "") { 
+        const selected = selectElement.options[selectElement.selectedIndex];
+        const currentBalance = parseFloat(selected.getAttribute('data-balance')) || 0; 
+        const projectedBalance = currentBalance + (totalDue - amountPaid); // Negative means credit
+
+        if (projectedBalance > 0) {
+            scenarioBox.className = "mt-2 p-3 rounded-3 bg-danger bg-opacity-10 border border-danger";
+            scenarioBox.innerHTML = `
+                <div class="d-flex justify-content-between text-muted small mb-1"><span>Current Balance:</span> <b>${currentBalance.toLocaleString()} MMK</b></div>
+                <div class="d-flex justify-content-between border-top border-danger pt-2 mt-1 text-danger">
+                    <span class="fw-bold">REMAINING DEBT:</span> <b class="fs-5">${projectedBalance.toLocaleString()} MMK</b>
+                </div>`;
+        } else if (projectedBalance < 0) {
+            scenarioBox.className = "mt-2 p-3 rounded-3 bg-primary bg-opacity-10 border border-primary";
+            scenarioBox.innerHTML = `
+                <div class="d-flex justify-content-between text-muted small mb-1"><span>Current Balance:</span> <b>${currentBalance.toLocaleString()} MMK</b></div>
+                <div class="d-flex justify-content-between border-top border-primary pt-2 mt-1 text-primary">
+                    <span class="fw-bold">ADDED TO STORE CREDIT:</span> <b class="fs-5">${Math.abs(projectedBalance).toLocaleString()} MMK</b>
+                </div>`;
+        } else {
+            scenarioBox.className = "mt-2 p-3 rounded-3 bg-light border";
+            scenarioBox.innerHTML = `<div class="text-center text-success fw-bold">Account Balance Settled (0 MMK)</div>`;
+        }
+    } 
+    // 2. WALK-IN CUSTOMER LOGIC (Change to Return)
+    else {
+        const change = amountPaid - totalDue;
+        if (change > 0) {
+            scenarioBox.className = "mt-2 p-3 rounded-3 bg-success bg-opacity-10 border border-success";
+            scenarioBox.innerHTML = `<div class="d-flex justify-content-between text-success"><span class="fw-bold">CHANGE TO RETURN:</span> <b class="fs-5">${change.toLocaleString()} MMK</b></div>`;
+        } else if (change < 0 && totalDue > 0) {
+            scenarioBox.className = "mt-2 p-3 rounded-3 bg-danger bg-opacity-10 border border-danger";
+            scenarioBox.innerHTML = `<div class="d-flex justify-content-between text-danger"><span class="fw-bold">STILL OWES:</span> <b class="fs-5">${Math.abs(change).toLocaleString()} MMK</b></div>`;
+        } else {
+            scenarioBox.className = "mt-2 p-2 rounded-3 text-center text-muted small border";
+            scenarioBox.innerHTML = `Exact Amount Entered`;
+        }
+    }
 }
