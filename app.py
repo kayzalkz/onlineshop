@@ -57,6 +57,21 @@ class Customer(db.Model):
     phone = db.Column(db.String(20))
     balance = db.Column(db.Numeric(10, 2), default=0.00)
 
+
+    
+# --- 1. ADD THIS NEW MODEL ---
+class Supplier(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150), nullable=False)
+    contact_person = db.Column(db.String(150))
+    phone = db.Column(db.String(50))
+    address = db.Column(db.Text)
+    # Positive balance means we OWE them money (Accounts Payable)
+    balance = db.Column(db.Numeric(10, 2), default=0.00) 
+    
+    products = db.relationship('Product', backref='supplier', lazy=True)
+
+# --- 2. UPDATE YOUR EXISTING PRODUCT MODEL ---
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150))
@@ -66,6 +81,27 @@ class Product(db.Model):
     purchase_price = db.Column(db.Numeric(10, 2))
     selling_price = db.Column(db.Numeric(10, 2))
     stock = db.Column(db.Integer, default=0)
+    
+    # ADD THIS LINE TO LINK THE PRODUCT TO A SUPPLIER
+    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'), nullable=True)
+class PurchaseOrder(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'), nullable=False)
+    status = db.Column(db.String(20), default='Pending') # 'Pending', 'Received', 'Cancelled'
+    total_amount = db.Column(db.Numeric(10, 2), default=0.00)
+    timestamp = db.Column(db.DateTime, default=get_mmt_time)
+    
+    supplier = db.relationship('Supplier', backref='purchase_orders', lazy=True)
+    items = db.relationship('POItem', backref='purchase_order', lazy=True, cascade="all, delete-orphan")
+
+class POItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    po_id = db.Column(db.Integer, db.ForeignKey('purchase_order.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    unit_cost = db.Column(db.Numeric(10, 2), nullable=False)
+
+    product = db.relationship('Product', backref='po_items')
 
 class Sale(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -105,16 +141,78 @@ def inject_company():
     return dict(company=Company.query.first())
 
 # ==========================================
-# DASHBOARD & POS ROUTES
+# DASHBOARD ROUTE
 # ==========================================
-
 @app.route('/')
 @login_required
 def dashboard():
-    today = get_mmt_time().date() # MMT FIX
+    today = get_mmt_time().date() 
+    
+    # KPIs
     total_sales = db.session.query(func.sum(Sale.total_amount)).filter(func.date(Sale.timestamp) == today).scalar() or 0
     total_stock = db.session.query(func.sum(Product.stock)).scalar() or 0
     active_credit = db.session.query(func.sum(Customer.balance)).filter(Customer.balance > 0).scalar() or 0
+    supplier_debt = db.session.query(func.sum(Supplier.balance)).filter(Supplier.balance > 0).scalar() or 0
+    
+    # Best Sellers
+    top_items = db.session.query(
+        SaleItem.product_name, 
+        func.sum(SaleItem.quantity).label('total_sold')
+    ).group_by(SaleItem.product_name).order_by(func.sum(SaleItem.quantity).desc()).limit(5).all()
+
+    # NEW: Top 5 Customers by Total Spent
+    top_customers = db.session.query(
+        Customer.name,
+        func.sum(Sale.total_amount).label('total_spent')
+    ).join(Sale).group_by(Customer.id).order_by(func.sum(Sale.total_amount).desc()).limit(5).all()
+
+    # NEW: Top 5 Suppliers by Total Ordered
+    top_suppliers = db.session.query(
+        Supplier.name,
+        func.sum(PurchaseOrder.total_amount).label('total_ordered')
+    ).join(PurchaseOrder).group_by(Supplier.id).order_by(func.sum(PurchaseOrder.total_amount).desc()).limit(5).all()
+    
+    # 7-Day Chart Data
+    chart_data = []
+    for i in range(6, -1, -1):
+        day = (today - timedelta(days=i))
+        val = db.session.query(func.sum(Sale.total_amount)).filter(func.date(Sale.timestamp) == day).scalar() or 0
+        chart_data.append(float(val))
+
+    return render_template('dashboard.html', 
+                           total_sales=total_sales, 
+                           total_stock=total_stock, 
+                           active_credit=active_credit, 
+                           supplier_debt=supplier_debt,
+                           top_items=top_items,
+                           top_customers=top_customers,
+                           top_suppliers=top_suppliers,
+                           chart_data=chart_data)
+
+# ==========================================
+# REPORTS ROUTE
+# ==========================================
+@app.route('/reports')
+@login_required
+def reports():
+    today = get_mmt_time().date() 
+    
+    daily_rev = db.session.query(func.sum(Sale.total_amount)).filter(func.date(Sale.timestamp) == today).scalar() or 0
+    cash_total = db.session.query(func.sum(Sale.amount_paid)).filter(func.date(Sale.timestamp) == today, Sale.payment_method == 'cash').scalar() or 0
+    digital_total = db.session.query(func.sum(Sale.amount_paid)).filter(func.date(Sale.timestamp) == today, Sale.payment_method != 'cash').scalar() or 0
+    credit_total = db.session.query(func.sum(Customer.balance)).filter(Customer.balance > 0).scalar() or 0
+    
+    total_revenue = db.session.query(func.sum(SaleItem.quantity * SaleItem.price)).scalar() or Decimal('0')
+    total_cost = db.session.query(func.sum(SaleItem.quantity * SaleItem.purchase_cost)).scalar() or Decimal('0')
+    net_profit = total_revenue - total_cost
+
+    all_sales = Sale.query.order_by(Sale.timestamp.desc()).all()
+    products = Product.query.all()
+    stock_logs = StockLog.query.order_by(StockLog.timestamp.desc()).limit(200).all()
+    customers = Customer.query.all() 
+    
+    # NEW: Pass suppliers to the reports page
+    suppliers = Supplier.query.all()
     
     chart_data = []
     for i in range(6, -1, -1):
@@ -122,7 +220,12 @@ def dashboard():
         val = db.session.query(func.sum(Sale.total_amount)).filter(func.date(Sale.timestamp) == day).scalar() or 0
         chart_data.append(float(val))
 
-    return render_template('dashboard.html', total_sales=total_sales, total_stock=total_stock, active_credit=active_credit, chart_data=chart_data)
+    return render_template('reports.html', 
+                           daily_rev=daily_rev, cash_total=cash_total, digital_total=digital_total, credit_total=credit_total,
+                           all_sales=all_sales, products=products, stock_logs=stock_logs,
+                           customers=customers, suppliers=suppliers, # <-- Added suppliers here
+                           total_revenue=total_revenue, total_cost=total_cost, net_profit=net_profit, chart_data=chart_data)
+
 
 @app.route('/pos')
 @login_required
@@ -268,9 +371,89 @@ def receipt(sale_id):
     sale = Sale.query.get_or_404(sale_id)
     return render_template('receipt.html', sale=sale)
 
+
 # ==========================================
-# INVENTORY ROUTE
+# PURCHASE ORDER (PO) ROUTES
 # ==========================================
+
+@app.route('/purchase_orders')
+@login_required
+def purchase_orders():
+    pos = PurchaseOrder.query.order_by(PurchaseOrder.timestamp.desc()).all()
+    suppliers = Supplier.query.all()
+    products = Product.query.all()
+    return render_template('purchase_orders.html', pos=pos, suppliers=suppliers, products=products)
+
+@app.route('/po/create', methods=['POST'])
+@login_required
+def create_po():
+    supplier_id = request.form.get('supplier_id')
+    product_ids = request.form.getlist('product_id[]')
+    quantities = request.form.getlist('quantity[]')
+    costs = request.form.getlist('unit_cost[]')
+
+    if not supplier_id or not product_ids:
+        flash(_('Invalid Purchase Order data.'), 'danger')
+        return redirect(url_for('purchase_orders'))
+
+    # 1. Create the base PO
+    po = PurchaseOrder(supplier_id=supplier_id, status='Pending', total_amount=0)
+    db.session.add(po)
+    db.session.flush() # Get the PO ID before committing
+
+    total_amount = Decimal('0')
+
+    # 2. Add the items
+    for i in range(len(product_ids)):
+        if product_ids[i] and int(quantities[i]) > 0:
+            qty = int(quantities[i])
+            cost = Decimal(costs[i])
+            
+            po_item = POItem(po_id=po.id, product_id=product_ids[i], quantity=qty, unit_cost=cost)
+            db.session.add(po_item)
+            total_amount += (cost * qty)
+
+    po.total_amount = total_amount
+    db.session.commit()
+    flash(_('Purchase Order #{} created successfully.').format(po.id), 'success')
+    return redirect(url_for('purchase_orders'))
+
+@app.route('/po/receive/<int:po_id>', methods=['POST'])
+@login_required
+def receive_po(po_id):
+    po = PurchaseOrder.query.get_or_404(po_id)
+    
+    if po.status == 'Pending':
+        # 1. Update Status
+        po.status = 'Received'
+        
+        # 2. Increase the amount we owe the supplier (Accounts Payable)
+        po.supplier.balance += po.total_amount 
+        
+        # 3. Increase Inventory Stock & Log it
+        for item in po.items:
+            item.product.stock += item.quantity
+            db.session.add(StockLog(
+                product_id=item.product.id, 
+                quantity=item.quantity, 
+                action=f"Received via PO #{po.id}", 
+                timestamp=get_mmt_time()
+            ))
+            
+        db.session.commit()
+        flash(_('Goods received! Inventory stock and supplier balances have been updated.'), 'success')
+        
+    return redirect(url_for('purchase_orders'))
+
+@app.route('/po/cancel/<int:po_id>', methods=['POST'])
+@login_required
+def cancel_po(po_id):
+    po = PurchaseOrder.query.get_or_404(po_id)
+    if po.status == 'Pending':
+        po.status = 'Cancelled'
+        db.session.commit()
+        flash(_('Purchase Order #{} cancelled.').format(po.id), 'warning')
+    return redirect(url_for('purchase_orders'))
 
 # ==========================================
 # INVENTORY ROUTE
@@ -360,56 +543,85 @@ def inventory():
         return redirect(url_for('inventory'))
         
     # GET Request: Render the page
-    return render_template('inventory.html', products=Product.query.all())
+    # Capture supplier ID during POST actions
+    supplier_id = request.form.get('supplier_id')
+    if supplier_id == "":
+        supplier_id = None
+        
+    # [Your existing code for adding/editing a product goes here]
+    # Make sure to add `supplier_id=supplier_id` when you create or update the Product!
 
-# ==========================================
-# REPORTS ROUTE
+    # Pass suppliers to the template so the dropdowns work
+    return render_template('inventory.html', 
+                           products=Product.query.all(), 
+                           suppliers=Supplier.query.all())
+
+
+
+   # ==========================================
+# SUPPLIER MANAGEMENT ROUTES
 # ==========================================
 
-@app.route('/reports')
+@app.route('/suppliers', methods=['GET', 'POST'])
 @login_required
-def reports():
-    today = get_mmt_time().date() 
-    
-    # --- 1. Today's KPIs ---
-    daily_rev = db.session.query(func.sum(Sale.total_amount)).filter(func.date(Sale.timestamp) == today).scalar() or 0
-    cash_total = db.session.query(func.sum(Sale.amount_paid)).filter(func.date(Sale.timestamp) == today, Sale.payment_method == 'cash').scalar() or 0
-    digital_total = db.session.query(func.sum(Sale.amount_paid)).filter(func.date(Sale.timestamp) == today, Sale.payment_method != 'cash').scalar() or 0
-    credit_total = db.session.query(func.sum(Customer.balance)).filter(Customer.balance > 0).scalar() or 0
-    
-    # --- 2. Total Profit & Loss Math ---
-    total_revenue = db.session.query(func.sum(SaleItem.quantity * SaleItem.price)).scalar() or Decimal('0')
-    total_cost = db.session.query(func.sum(SaleItem.quantity * SaleItem.purchase_cost)).scalar() or Decimal('0')
-    net_profit = total_revenue - total_cost
+def suppliers():
+    if request.method == 'POST':
+        action = request.form.get('action', 'add')
+        
+        if action == 'add':
+            s = Supplier(
+                name=request.form.get('name'),
+                contact_person=request.form.get('contact_person'),
+                phone=request.form.get('phone'),
+                address=request.form.get('address'),
+                balance=Decimal(request.form.get('balance', '0'))
+            )
+            db.session.add(s)
+            flash(_('Supplier registered successfully.'), 'success')
+            
+        elif action == 'edit':
+            s = Supplier.query.get(request.form.get('supplier_id'))
+            if s:
+                s.name = request.form.get('name')
+                s.contact_person = request.form.get('contact_person')
+                s.phone = request.form.get('phone')
+                s.address = request.form.get('address')
+                flash(_('Supplier details updated.'), 'success')
+                
+        elif action == 'delete':
+            s = Supplier.query.get(request.form.get('supplier_id'))
+            if s:
+                # Unlink products before deleting to prevent database errors
+                for p in s.products:
+                    p.supplier_id = None
+                db.session.delete(s)
+                flash(_('Supplier removed from system.'), 'warning')
+                
+        db.session.commit()
+        return redirect(url_for('suppliers'))
 
-    # --- 3. Fetch Data for Tables ---
-    all_sales = Sale.query.order_by(Sale.timestamp.desc()).all()
-    products = Product.query.all()
-    stock_logs = StockLog.query.order_by(StockLog.timestamp.desc()).limit(200).all()
-    
-    # NEW: Fetch all customers for the Client Financial Report tab
-    customers = Customer.query.all() 
-    
-    # --- 4. 7-Day Revenue Trend Chart ---
-    chart_data = []
-    for i in range(6, -1, -1):
-        day = (today - timedelta(days=i))
-        val = db.session.query(func.sum(Sale.total_amount)).filter(func.date(Sale.timestamp) == day).scalar() or 0
-        chart_data.append(float(val))
+    return render_template('suppliers.html', suppliers=Supplier.query.all())
 
-    return render_template('reports.html', 
-                           daily_rev=daily_rev, 
-                           cash_total=cash_total, 
-                           digital_total=digital_total, 
-                           credit_total=credit_total,
-                           all_sales=all_sales, 
-                           products=products, 
-                           stock_logs=stock_logs,
-                           customers=customers,  # Passed to the template here!
-                           total_revenue=total_revenue, 
-                           total_cost=total_cost, 
-                           net_profit=net_profit, 
-                           chart_data=chart_data)
+@app.route('/supplier/pay/<int:supplier_id>', methods=['POST'])
+@login_required
+def supplier_pay(supplier_id):
+    supplier = Supplier.query.get_or_404(supplier_id)
+    
+    try:
+        amount = Decimal(request.form.get('amount', '0'))
+    except:
+        amount = Decimal('0')
+
+    if amount > 0:
+        # Subtract the payment from what we owe the supplier
+        supplier.balance -= amount
+        db.session.commit()
+        flash(f'Payment of {amount:,.0f} MMK recorded for {supplier.name}.', 'success')
+    else:
+        flash('Invalid payment amount.', 'danger')
+
+    return redirect(url_for('suppliers'))
+
 # ==========================================
 # MANAGEMENT ROUTES
 # ==========================================
