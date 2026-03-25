@@ -11,17 +11,27 @@ from flask_babel import Babel, _
 from sqlalchemy import func
 import pandas as pd
 from werkzeug.utils import secure_filename
-
-# NEW ENTERPRISE PDF IMPORTS
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 
+# NEW PRODUCTION IMPORTS
+from dotenv import load_dotenv
+from flask_wtf.csrf import CSRFProtect
+from flask_migrate import Migrate
+
+# Load the hidden .env file
+load_dotenv()
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'kzl_boutique_secure_2026'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:japu@localhost/pos_system'
+
+# Use environment variables for security
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback_key')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Remove app.run(debug=True) from the bottom of your file later!
 
 UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -29,7 +39,10 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 babel = Babel(app, locale_selector=lambda: session.get('lang', 'en'))
 
+# Initialize Database & Security
 db = SQLAlchemy(app)
+migrate = Migrate(app, db) # Enables safe database upgrades
+csrf = CSRFProtect(app)    # Blocks Cross-Site Request Forgery attacks
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -249,21 +262,42 @@ def process_sale():
         db.session.add(sale)
         db.session.flush()
 
+    # ==========================================
+    # ENTERPRISE FIX: SECURE INVENTORY DEDUCTION
+    # ==========================================
     for item_str in cart_data.split(','):
         if item_str:
             p_id, qty = item_str.split(':')
             qty = int(qty)
-            product = Product.query.get(int(p_id))
+            
+            # 1. LOCK THE DATABASE ROW for this specific product
+            product = Product.query.with_for_update().get(int(p_id))
+            
             if product:
+                # 2. SAFETY CHECK: Ensure we actually have the stock (skip this check if we are just editing an old sale)
+                if product.stock < qty and not editing_sale_id:
+                    db.session.rollback() # Cancel the whole receipt
+                    flash(_(f'Checkout Failed! Another cashier just bought the last {product.name}.'), 'danger')
+                    return redirect(url_for('pos'))
+
+                # Proceed with the sale normally
                 prod_desc = f"{product.name} ({product.size} - {product.color})" if product.color else f"{product.name} ({product.size})"
                 db.session.add(SaleItem(sale_id=sale.id, product_name=prod_desc, quantity=qty, price=product.selling_price, purchase_cost=product.purchase_price))
                 product.stock -= qty
+    # ==========================================
 
     if cust_id:
         customer = Customer.query.get(cust_id)
         customer.balance += (total_amount - amount_paid)
 
-    db.session.commit()
+    # Wrap the commit in a try/except block just in case the database is completely locked up
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        flash(_('Database busy. Please try processing the sale again.'), 'danger')
+        return redirect(url_for('pos'))
+
     session.pop('edit_cart', None)
     session.pop('edit_customer', None)
     session.pop('edit_paid', None)
