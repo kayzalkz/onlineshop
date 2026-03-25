@@ -1,276 +1,348 @@
 {% extends "base.html" %}
-{% block page_title %}{{ _('Register / Checkout') }}{% endblock %}
+{% block page_title %}{{ _('Financial Reports & Ledgers') }}{% endblock %}
 
 {% block content %}
 <style>
-    /* --- RESPONSIVE LAYOUT ENGINE --- */
-    @media (min-width: 992px) {
-        .main-content { margin-left: 260px; width: calc(100% - 260px); }
-        .sidebar { width: 260px; transform: translateX(0); z-index: 2000; }
-    }
+    /* --- ENTERPRISE REPORTING STYLES --- */
+    .erp-tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.5rem; gap: 1rem; scrollbar-width: none; }
+    .erp-tabs::-webkit-scrollbar { display: none; }
+    .erp-tabs .nav-link { color: #64748b; font-weight: 600; border: none; padding: 10px 5px; background: transparent; position: relative; white-space: nowrap; transition: color 0.2s; }
+    .erp-tabs .nav-link:hover { color: #0f172a; }
+    .erp-tabs .nav-link.active { color: #4f46e5; }
+    .erp-tabs .nav-link.active::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px; background-color: #4f46e5; border-radius: 2px 2px 0 0; }
+
+    .erp-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .erp-table th { background: #f8fafc; color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
+    .erp-table td { padding: 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; font-size: 14px; color: #334155; }
+    .erp-table tbody tr:hover { background-color: #f8fafc; }
     
-    @media (max-width: 991px) {
-        .main-content { margin-left: 0; width: 100%; min-height: 100vh; }
-        .sidebar { transform: translateX(-100%); width: 260px; z-index: 2000 !important; position: fixed; }
-        .sidebar.active { transform: translateX(0); box-shadow: 10px 0 30px rgba(0,0,0,0.2); }
-        
-        /* Layout Swap: Cart on top for mobile */
-        .product-grid-container { order: 2; }
-        .cart-column { order: 1; margin-bottom: 20px; }
-        .sticky-top { position: relative !important; top: 0 !important; z-index: 10 !important; }
-    }
-
-    /* --- ORIGINAL STYLES --- */
-    @media print {
-        body * { visibility: hidden; }
-        #invoiceModal, #invoiceModal * { visibility: visible; }
-        #invoiceModal { position: absolute; left: 0; top: 0; width: 100%; height: 100%; margin: 0; padding: 0; background: white; }
-        .no-print { display: none !important; }
-        .a5-container { box-shadow: none !important; width: 100% !important; padding: 0 !important; }
-    }
-
-    .a5-container { width: 148mm; min-height: 200mm; background: white; padding: 25px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 8px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; }
-    .inv-header { display: flex; justify-content: space-between; border-bottom: 2px solid #6d28d9; padding-bottom: 15px; margin-bottom: 20px; }
-    .inv-logo img { max-height: 70px; }
-    .inv-logo h2 { margin: 10px 0 2px; font-size: 20px; color: #4c1d95; text-transform: uppercase; font-weight: bold; }
-    .inv-title { text-align: right; }
-    .inv-title h1 { margin: 0 0 5px; font-size: 26px; color: #374151; }
-    .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-    .inv-table th { background: #6d28d9; color: white; padding: 10px; text-align: left; }
-    .inv-table td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; }
-    .inv-finance { width: 60%; float: right; border-collapse: collapse; margin-bottom: 30px; }
-    .balance-row th, .balance-row td { background: #f3f4f6; font-size: 16px; color: #6d28d9; padding: 12px 10px; }
-    .ledger-table th { color: #6b7280; font-weight: bold; text-transform: uppercase; font-size: 12px; border-bottom: 2px solid #e5e7eb; }
-    .ledger-table td { padding: 15px 10px; border-bottom: 1px solid #f3f4f6; }
-    .action-btn { background: transparent; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 12px; color: #6b7280; text-decoration: none; display: inline-block;}
-    .pay-kpay { color: #6d28d9; font-weight: bold; }
-    .pay-wave { color: #2563eb; font-weight: bold; }
-    .pay-cash { color: #059669; font-weight: bold; }
-    .pay-bank { color: #d97706; font-weight: bold; }
+    /* Accounting Alignments */
+    .num-col { text-align: right; font-variant-numeric: tabular-nums; }
+    
+    /* Soft Badges */
+    .badge-soft-success { background: #dcfce7; color: #166534; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-size: 11px; }
+    .badge-soft-danger { background: #fee2e2; color: #991b1b; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-size: 11px; }
+    .badge-soft-warning { background: #fef9c3; color: #854d0e; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-size: 11px; }
+    
+    .filter-bar { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 20px; }
+    .action-icon { color: #94a3b8; transition: 0.2s; background: transparent; border: none; padding: 5px; }
+    .action-icon:hover { color: #4f46e5; transform: scale(1.1); }
+    .action-icon.danger:hover { color: #ef4444; }
 </style>
 
-<div class="container-fluid p-0">
-    <div class="row g-4 mb-5">
+<ul class="nav erp-tabs" id="reportTabs" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overview" type="button">Master Ledger</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#clientReport" type="button">Accounts Receivable</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#supplierReport" type="button">Accounts Payable</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#pl" type="button">Profit & Loss (P&L)</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#stock" type="button">Inventory Valuation</button></li>
+</ul>
+
+<div class="tab-content" id="reportTabsContent">
+
+    <div class="tab-pane fade show active" id="overview" role="tabpanel">
         
-        <div class="col-xl-7 col-lg-6 product-grid-container">
-            <div class="input-group mb-3 shadow-sm rounded-4 overflow-hidden">
-                <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
-                <input type="text" id="itemSearch" class="form-control border-0 py-3" placeholder="{{ _('Search items...') }}" onkeyup="searchItems()">
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-primary border-4">
+                    <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Today's Revenue</p>
+                    <h4 class="fw-bold text-dark mb-0">{{ "{:,.0f}".format(daily_rev) }} <span class="fs-6 text-muted fw-normal">MMK</span></h4>
+                </div>
             </div>
-            <div class="row g-2 overflow-auto pe-2" style="max-height: 65vh;" id="productGrid">
-                {% for p in products %}
-                <div class="col-md-4 col-6 product-card-container" data-name="{{ p.name|lower }}" data-size="{{ p.size|lower }}">
-                    <div class="card product-card h-100 shadow-sm border-0 position-relative" 
-                         onclick="addToCart('{{ p.id }}', '{{ p.name }}', {{ p.selling_price }}, {{ p.stock }})" style="cursor: pointer;">
-                        <div class="bg-light text-center py-3 rounded-top-3">
-                            <span class="badge bg-dark position-absolute top-0 end-0 m-2">{{ p.size }}</span>
-                            <span class="badge bg-secondary position-absolute top-0 start-0 m-2">Stock: {{ p.stock }}</span>
-                            <i class="fas fa-tshirt fa-2x text-muted opacity-50 mt-3"></i>
-                        </div>
-                        <div class="card-body p-2 text-center">
-                            <h6 class="fw-bold mb-1 text-truncate" style="font-size: 0.9rem;">{{ p.name }}</h6>
-                            <span class="text-primary fw-bold small">{{ "{:,.0f}".format(p.selling_price) }} MMK</span>
-                        </div>
-                    </div>
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-success border-4">
+                    <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Cash Drawer</p>
+                    <h4 class="fw-bold text-success mb-0">{{ "{:,.0f}".format(cash_total) }} <span class="fs-6 text-success opacity-75 fw-normal">MMK</span></h4>
                 </div>
-                {% endfor %}
             </div>
-        </div>
-
-        <div class="col-xl-5 col-lg-6 cart-column">
-            
-            {% if session.get('editing_sale_id') %}
-            <div class="bg-warning bg-opacity-25 border border-warning shadow-sm rounded-4 p-3 d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <i class="fas fa-exclamation-triangle text-dark me-2"></i>
-                    <strong class="text-dark">Editing Sale #{{ session.get('editing_sale_id') }}</strong>
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-info border-4">
+                    <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Digital Paid</p>
+                    <h4 class="fw-bold text-info mb-0">{{ "{:,.0f}".format(digital_total) }} <span class="fs-6 text-info opacity-75 fw-normal">MMK</span></h4>
                 </div>
-                <a href="{{ url_for('cancel_edit') }}" class="btn btn-sm btn-danger fw-bold rounded-pill shadow-sm">Cancel Edit</a>
             </div>
-            {% endif %}
-
-            <div class="card border-0 shadow-sm rounded-4 bg-white sticky-top" style="top: 20px;">
-                <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-                    <h5 class="fw-bold mb-0">{{ _('Current Order') }}</h5>
-                    <button class="btn btn-sm btn-outline-danger border-0 rounded-pill px-3" onclick="clearCart()">Clear</button>
-                </div>
-                <div class="card-body px-0 overflow-auto" style="max-height: 35vh;">
-                    <table class="table align-middle mb-0">
-                        <tbody id="cartBody">
-                            <tr id="emptyMsg"><td class="text-center py-5 text-muted">{{ _('Tap an item to add to bag') }}</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="card-footer bg-light border-0 p-4 rounded-bottom-4">
-                    <form action="{{ url_for('process_sale') }}" method="POST">
-                        <input type="hidden" name="total_amount" id="formTotalAmount" value="0">
-                        <input type="hidden" name="cart_data" id="formCartData" value="">
-
-                        <div class="d-flex justify-content-between align-items-end mb-3">
-                            <span class="text-muted fw-bold">{{ _('TOTAL DUE:') }}</span>
-                            <h2 class="fw-bold mb-0 text-dark" id="displayTotal">0 MMK</h2>
-                        </div>
-
-                        <div class="mb-3">
-                            <select class="form-select border-0 shadow-sm py-2" name="customer_id" id="customerSelect" onchange="calculateScenario()">
-                                <option value="" data-balance="0">-- Walk-in Customer --</option>
-                                {% for c in customers %}
-                                <option value="{{ c.id }}" data-balance="{{ c.balance }}">{{ c.name }}</option>
-                                {% endfor %}
-                            </select>
-                            <div id="creditScenarioBox" class="mt-2 p-2 rounded-3 small d-none"></div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="small fw-bold text-muted mb-1">{{ _('AMOUNT TENDERED') }}</label>
-                            <input type="number" class="form-control form-control-lg border-0 shadow-sm fw-bold text-primary" name="amount_paid" id="amountPaidInput" value="0" min="0" onkeyup="calculateScenario()" required>
-                        </div>
-
-                        <div class="row g-2 mb-3">
-                            <div class="col-6">
-                                <select class="form-select border-0 shadow-sm" name="payment_method">
-                                    <option value="cash">CASH</option>
-                                    <option value="kpay">KPAY</option>
-                                    <option value="wave">WAVEPAY</option>
-                                    <option value="bank">BANK TRANSFER</option>
-                                </select>
-                            </div>
-                            <div class="col-6">
-                                <input type="text" class="form-control border-0 shadow-sm" name="payment_info" placeholder="Ref / Phone No.">
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-sm" id="completeBtn" disabled>
-                            <i class="fas fa-check-circle me-2"></i>{{ _('COMPLETE SALE') }}
-                        </button>
-                    </form>
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-danger border-4">
+                    <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Unpaid Credit</p>
+                    <h4 class="fw-bold text-danger mb-0">{{ "{:,.0f}".format(credit_total) }} <span class="fs-6 text-danger opacity-75 fw-normal">MMK</span></h4>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
-                <h5 class="fw-bold mb-4 text-dark"><i class="fas fa-history me-2 text-primary"></i>Recent Sales</h5>
-                <div class="table-responsive">
-                    <table class="table ledger-table">
-                        <thead>
-                            <tr>
-                                <th>Ref #</th>
-                                <th>Customer</th>
-                                <th>Items</th>
-                                <th class="text-end">Amount</th> <th>Payment</th>
-                                <th>Status</th>
-                                <th class="text-end">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for sale in recent_sales[:10] %}
-                            <tr>
-                                <td class="text-muted">#{{ sale.id }}</td>
-                                <td><div class="fw-bold text-dark">{{ sale.customer.name if sale.customer else 'Walk-in' }}</div></td>
-                                <td>{% for item in sale.items %}<div class="small">{{ item.product_name }} (x{{ item.quantity }})</div>{% endfor %}</td>
-                                
-                                <td class="text-end">
-                                    <div class="fw-bold text-dark">{{ "{:,.0f}".format(sale.total_amount) }} MMK</div>
-                                    <small class="text-muted d-block" style="font-size: 11px;">PAID: {{ "{:,.0f}".format(sale.amount_paid) }} MMK</small>
-                                    {% if sale.amount_paid > sale.total_amount %}
-                                        <small class="text-success fw-bold d-block" style="font-size: 11px;">CHANGE: {{ "{:,.0f}".format(sale.amount_paid - sale.total_amount) }} MMK</small>
-                                    {% endif %}
-                                </td>
-
-                                <td class="text-uppercase small fw-bold text-primary">{{ sale.payment_method }}</td>
-                                <td>{% if sale.amount_paid >= sale.total_amount %}<span class="badge bg-success">PAID</span>{% else %}<span class="badge bg-danger">DEBT</span>{% endif %}</td>
-                                <td class="text-end">
-                                    <div class="d-flex justify-content-end gap-2">
-                                        <a href="{{ url_for('receipt', sale_id=sale.id) }}" target="_blank" class="action-btn"><i class="fas fa-print"></i></a>
-                                        {% if current_user.role == 'admin' %}
-                                        <form action="{{ url_for('edit_sale', sale_id=sale.id) }}" method="POST" class="d-inline">
-                                            <button type="submit" class="action-btn text-warning"><i class="fas fa-edit"></i></button>
-                                        </form>
-                                        <form action="{{ url_for('delete_sale', sale_id=sale.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Void transaction?');">
-                                            <button type="submit" class="action-btn text-danger"><i class="fas fa-trash"></i></button>
-                                        </form>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% if last_sale %}
-<div class="modal fade show" id="invoiceModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.7); z-index: 3000;">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content bg-transparent border-0">
-            <div class="d-flex justify-content-center gap-2 mb-3 no-print">
-                <button onclick="window.print()" class="btn btn-warning fw-bold px-4 rounded-3"><i class="fas fa-print me-2"></i>Print Invoice</button>
-                <button onclick="closeReceipt()" class="btn btn-light fw-bold px-4 rounded-3">Close</button>
-            </div>
-            <div class="a5-container">
-                <div class="inv-header">
-                    <div class="inv-logo">
-                        <h2>{{ company.name if company else 'BOUTIQUE SHOP' }}</h2>
-                        <p>{{ company.address if company }}<br>Phone: {{ company.phone if company }}</p>
-                    </div>
-                    <div class="inv-title">
-                        <h1>INVOICE</h1>
-                        <p>#{{ last_sale.id }}<br><small>{{ last_sale.customer.name if last_sale.customer else 'Walk-in' }}</small></p>
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden mb-4">
+            <div class="filter-bar m-3 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-filter text-muted"></i>
+                    <select class="form-select form-select-sm border-0 bg-white fw-bold shadow-sm" style="width: 150px;" id="dateFilter" onchange="toggleCustomDate()">
+                        <option value="all">All Time</option>
+                        <option value="daily">Today</option>
+                        <option value="weekly">This Week</option>
+                        <option value="monthly">This Month</option>
+                        <option value="custom">Custom Date...</option>
+                    </select>
+                    <div id="customDateRange" class="d-none align-items-center gap-2">
+                        <input type="date" id="startDate" class="form-control form-control-sm border-0 shadow-sm" onchange="filterTableByDate()">
+                        <span class="text-muted small fw-bold">to</span>
+                        <input type="date" id="endDate" class="form-control form-control-sm border-0 shadow-sm" onchange="filterTableByDate()">
                     </div>
                 </div>
-                <table class="inv-table">
-                    <thead><tr><th>Description</th><th style="text-align: center;">Qty</th><th>Price</th></tr></thead>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('export_excel') }}" class="btn btn-sm btn-outline-success fw-bold px-3"><i class="fas fa-file-excel me-1"></i> CSV / Excel</a>
+                    <a href="{{ url_for('export_pdf') }}" class="btn btn-sm btn-outline-danger fw-bold px-3"><i class="fas fa-file-pdf me-1"></i> Print PDF</a>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table erp-table mb-0" style="min-width: 1000px;">
+                    <thead>
+                        <tr>
+                            <th>Ref #</th>
+                            <th>Date & Time</th>
+                            <th>Client / Customer</th>
+                            <th>Method</th>
+                            <th class="text-end">Amount Details</th> <th class="text-center">Status</th>
+                            <th class="text-center"><i class="fas fa-cog"></i></th>
+                        </tr>
+                    </thead>
                     <tbody>
-                        {% for item in last_sale.items %}
-                        <tr><td>{{ item.product_name }}</td><td style="text-align: center;">{{ item.quantity }}</td><td style="text-align: right;">{{ "{:,.0f}".format(item.price * item.quantity) }}</td></tr>
+                        {% for sale in all_sales %}
+                        <tr class="sale-row" data-date="{{ sale.timestamp.strftime('%Y-%m-%d') }}">
+                            <td class="fw-bold text-muted small">#{{ sale.id }}</td>
+                            <td class="small">{{ sale.timestamp.strftime('%d %b, %Y %H:%M') }}</td>
+                            <td class="fw-bold">{{ sale.customer.name if sale.customer else 'Walk-in Customer' }}</td>
+                            <td><span class="text-uppercase small fw-bold text-muted">{{ sale.payment_method }}</span></td>
+                            
+                            <td class="text-end">
+                                <div class="fw-bold text-dark">{{ "{:,.0f}".format(sale.total_amount) }} MMK</div>
+                                <small class="text-muted d-block" style="font-size: 11px;">PAID: {{ "{:,.0f}".format(sale.amount_paid) }} MMK</small>
+                                {% if sale.amount_paid > sale.total_amount %}
+                                    <small class="text-success fw-bold d-block" style="font-size: 11px;">CHANGE: {{ "{:,.0f}".format(sale.amount_paid - sale.total_amount) }} MMK</small>
+                                {% endif %}
+                            </td>
+
+                            <td class="text-center">
+                                {% if sale.amount_paid >= sale.total_amount %}
+                                    <span class="badge-soft-success">PAID</span>
+                                {% else %}
+                                    <span class="badge-soft-danger">DEBT</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center text-nowrap">
+                                <a href="{{ url_for('receipt', sale_id=sale.id) }}" target="_blank" class="action-icon"><i class="fas fa-print"></i></a>
+                                {% if current_user.role == 'admin' %}
+                                <form action="{{ url_for('edit_sale', sale_id=sale.id) }}" method="POST" class="d-inline"><button type="submit" class="action-icon"><i class="fas fa-edit"></i></button></form>
+                                <form action="{{ url_for('delete_sale', sale_id=sale.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Permanently void this transaction?');"><button type="submit" class="action-icon danger"><i class="fas fa-trash"></i></button></form>
+                                {% endif %}
+                            </td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
-                <div style="content: ''; display: table; clear: both;">
-                    <table class="inv-finance">
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="clientReport" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden">
+            <div class="filter-bar m-3 d-flex justify-content-between align-items-center">
+                <select id="customerStatusFilter" class="form-select form-select-sm border-0 shadow-sm fw-bold w-auto" onchange="filterCustomers()">
+                    <option value="all">All Clients</option>
+                    <option value="debt">Owes Store (Receivable)</option>
+                    <option value="credit">Store Credit (Liability)</option>
+                    <option value="settled">Settled (Zero Balance)</option>
+                </select>
+                <a href="{{ url_for('export_customers_excel') }}" class="btn btn-sm btn-outline-success fw-bold px-3"><i class="fas fa-file-excel me-1"></i> Export</a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table erp-table mb-0" style="min-width: 800px;">
+                    <thead>
                         <tr>
-                            <th>Total Bill:</th>
-                            <td class="text-end fw-bold">{{ "{:,.0f}".format(last_sale.total_amount) }} MMK</td>
+                            <th>Client Name</th>
+                            <th>Contact Info</th>
+                            <th>Last Activity</th>
+                            <th class="text-center">Account Status</th>
+                            <th class="num-col">Current Balance (MMK)</th>
                         </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in customers %}
+                        {% set status = 'settled' %}
+                        {% if c.balance > 0 %}{% set status = 'debt' %}{% elif c.balance < 0 %}{% set status = 'credit' %}{% endif %}
+                        
+                        <tr class="customer-row" data-status="{{ status }}">
+                            <td class="fw-bold">{{ c.name }} <br><span class="small text-muted fw-normal">ID: #{{ c.id }}</span></td>
+                            <td>{{ c.phone }}</td>
+                            <td class="small text-muted">{% if c.sales %}{{ (c.sales|sort(attribute='timestamp', reverse=True)|first).timestamp.strftime('%d %b, %Y') }}{% else %}--{% endif %}</td>
+                            <td class="text-center">
+                                {% if c.balance > 0 %}<span class="badge-soft-danger">OWES STORE</span>
+                                {% elif c.balance < 0 %}<span class="badge-soft-warning">STORE CREDIT</span>
+                                {% else %}<span class="badge-soft-success">SETTLED</span>{% endif %}
+                            </td>
+                            <td class="num-col fw-bold fs-6 {% if c.balance > 0 %}text-danger{% elif c.balance < 0 %}text-success{% endif %}">
+                                {{ "{:,.0f}".format(c.balance|abs) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="supplierReport" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden">
+            <div class="p-4 border-bottom bg-light">
+                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-truck text-muted me-2"></i>Accounts Payable Ledger</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table erp-table mb-0" style="min-width: 800px;">
+                    <thead>
                         <tr>
-                            <th>Amount Tendered:</th>
-                            <td class="text-end">{{ "{:,.0f}".format(last_sale.amount_paid) }} MMK</td>
+                            <th>Supplier / Vendor</th>
+                            <th>Contact Person</th>
+                            <th>Phone</th>
+                            <th class="text-center">Status</th>
+                            <th class="num-col">Total Owed (MMK)</th>
                         </tr>
-                        <tr class="balance-row">
-                            {% if last_sale.amount_paid > last_sale.total_amount %}
-                                {% if last_sale.customer_id %}
-                                    <th>Added to Store Credit:</th>
-                                {% else %}
-                                    <th>Change Returned:</th>
-                                {% endif %}
-                                <td class="text-end" style="color: #059669;">{{ "{:,.0f}".format(last_sale.amount_paid - last_sale.total_amount) }} MMK</td>
-                            {% elif last_sale.amount_paid < last_sale.total_amount %}
-                                <th>Remaining Debt:</th>
-                                <td class="text-end" style="color: #e11d48;">{{ "{:,.0f}".format(last_sale.total_amount - last_sale.amount_paid) }} MMK</td>
-                            {% else %}
-                                <th>Status:</th>
-                                <td class="text-end" style="color: #059669;">Fully Paid</td>
-                            {% endif %}
+                    </thead>
+                    <tbody>
+                        {% for s in suppliers %}
+                        <tr>
+                            <td class="fw-bold">{{ s.name }}</td>
+                            <td>{{ s.contact_person or '--' }}</td>
+                            <td>{{ s.phone or '--' }}</td>
+                            <td class="text-center">
+                                {% if s.balance > 0 %}<span class="badge-soft-danger">PENDING PAYMENT</span>
+                                {% else %}<span class="badge-soft-success">CLEARED</span>{% endif %}
+                            </td>
+                            <td class="num-col fw-bold fs-6 {% if s.balance > 0 %}text-danger{% endif %}">
+                                {{ "{:,.0f}".format(s.balance) }}
+                            </td>
                         </tr>
-                    </table>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="pl" role="tabpanel">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-10 col-lg-8">
+                <div class="card border-0 shadow-sm rounded-4 bg-white p-5">
+                    <div class="text-center mb-5">
+                        <h4 class="fw-bold text-dark mb-1">Income Statement (P&L)</h4>
+                        <p class="text-muted small">All-Time Cumulative</p>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between border-bottom border-2 py-3">
+                        <span class="text-dark fw-bold fs-5">Gross Revenue</span>
+                        <span class="fw-bold text-dark fs-5">{{ "{:,.0f}".format(total_revenue) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom py-3">
+                        <span class="text-muted fw-bold ps-4">Cost of Goods Sold (COGS)</span>
+                        <span class="fw-bold text-danger">- {{ "{:,.0f}".format(total_cost) }}</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between bg-light rounded-3 mt-4 p-4">
+                        <h3 class="fw-bold text-dark mb-0">NET PROFIT</h3>
+                        <h3 class="fw-bold text-success mb-0">{{ "{:,.0f}".format(net_profit) }} MMK</h3>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <div class="tab-pane fade" id="stock" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden">
+             <div class="p-4 border-bottom bg-light">
+                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-boxes text-muted me-2"></i>Asset Valuation</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table erp-table mb-0" style="min-width: 800px;">
+                    <thead>
+                        <tr>
+                            <th>SKU / Product Name</th>
+                            <th>Category</th>
+                            <th class="num-col">Qty on Hand</th>
+                            <th class="num-col">Total Asset Cost (COGS)</th>
+                            <th class="num-col">Potential Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in products %}
+                        <tr>
+                            <td class="fw-bold">{{ p.name }} <span class="badge bg-light text-muted ms-2">{{ p.size }}</span></td>
+                            <td>{{ p.category }}</td>
+                            <td class="num-col fw-bold {% if p.stock <= 5 %}text-danger{% endif %}">{{ p.stock }}</td>
+                            <td class="num-col text-muted">{{ "{:,.0f}".format(p.stock * p.purchase_price) }}</td>
+                            <td class="num-col text-success fw-bold">{{ "{:,.0f}".format(p.stock * p.selling_price) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 </div>
-{% endif %}
 
 <script>
-    // Variables passed to JS
-    let cart = {{ session.get('edit_cart', {}) | tojson | safe }}; 
-    let editCust = "{{ session.get('edit_customer', '') }}";
-    let editPaid = "{{ session.get('edit_paid', '') }}";
+// Enterprise Date Filtering Script
+function toggleCustomDate() {
+    const filter = document.getElementById('dateFilter').value;
+    const customDiv = document.getElementById('customDateRange');
+    if (filter === 'custom') {
+        customDiv.classList.remove('d-none');
+        customDiv.classList.add('d-flex');
+    } else {
+        customDiv.classList.add('d-none');
+        customDiv.classList.remove('d-flex');
+        filterTableByDate(); 
+    }
+}
+
+function filterTableByDate() {
+    const filter = document.getElementById('dateFilter').value;
+    const rows = document.getElementsByClassName('sale-row');
+    const today = new Date();
+    const offset = today.getTimezoneOffset() * 60000;
+    const localToday = new Date(today.getTime() - offset);
+    const todayString = localToday.toISOString().split('T')[0];
+    
+    const firstDayOfWeek = new Date(localToday);
+    firstDayOfWeek.setDate(localToday.getDate() - localToday.getDay());
+    const firstDayString = firstDayOfWeek.toISOString().split('T')[0];
+    
+    const currentMonth = localToday.getMonth();
+    const currentYear = localToday.getFullYear();
+    const startInput = document.getElementById('startDate').value;
+    const endInput = document.getElementById('endDate').value;
+
+    for (let row of rows) {
+        let rowDateStr = row.getAttribute('data-date');
+        let rowDateObj = new Date(rowDateStr + 'T12:00:00Z'); 
+        let showRow = true;
+
+        if (filter === 'daily') { showRow = (rowDateStr === todayString); } 
+        else if (filter === 'weekly') { showRow = (rowDateStr >= firstDayString); } 
+        else if (filter === 'monthly') { showRow = (rowDateObj.getUTCMonth() === currentMonth && rowDateObj.getUTCFullYear() === currentYear); } 
+        else if (filter === 'custom' && startInput && endInput) { showRow = (rowDateStr >= startInput && rowDateStr <= endInput); }
+        
+        row.style.display = showRow ? "" : "none";
+    }
+}
+
+// AR/AP Status Filter
+function filterCustomers() {
+    const filterValue = document.getElementById('customerStatusFilter').value;
+    const rows = document.querySelectorAll('.customer-row');
+    
+    rows.forEach(row => {
+        const rowStatus = row.getAttribute('data-status');
+        row.style.display = (filterValue === 'all' || rowStatus === filterValue) ? '' : 'none';
+    });
+}
 </script>
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% endblock %}
