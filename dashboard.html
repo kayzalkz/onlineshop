@@ -1,122 +1,145 @@
 {% extends "base.html" %}
-
-{% block page_title %}{{ _('Business Dashboard') }}{% endblock %}
+{% block page_title %}{{ _('Executive Dashboard') }}{% endblock %}
 
 {% block content %}
 <style>
-    .kpi-card { transition: transform 0.3s ease, box-shadow 0.3s ease; overflow: hidden; position: relative; }
-    .kpi-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important; }
-    .kpi-icon { position: absolute; right: -15px; top: -15px; font-size: 100px; opacity: 0.04; transform: rotate(-15deg); }
-    .text-purple { color: #6d28d9; }
-    .bg-purple { background-color: #6d28d9; }
-    .bg-purple-light { background-color: #f3e8ff; color: #6d28d9; }
-    .quick-action-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; border-radius: 16px; background: white; border: 1px solid #f3f4f6; color: #4b5563; text-decoration: none; transition: 0.2s; font-weight: bold; text-align: center; }
-    .quick-action-btn i { font-size: 24px; margin-bottom: 8px; color: #6d28d9; }
-    .quick-action-btn:hover { background: #6d28d9; color: white; border-color: #6d28d9; box-shadow: 0 10px 20px rgba(109, 40, 217, 0.3); }
+    /* --- ENTERPRISE SAAS DASHBOARD STYLES --- */
+    .kpi-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 16px; overflow: hidden; position: relative; border: 1px solid #f1f5f9; }
+    .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01) !important; }
+    .kpi-icon-wrapper { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .icon-revenue { background: #e0e7ff; color: #4f46e5; }
+    .icon-stock { background: #f3f4f6; color: #4b5563; }
+    .icon-receivable { background: #dcfce7; color: #059669; }
+    .icon-payable { background: #fee2e2; color: #e11d48; }
+    .bg-pattern { position: absolute; top: -20px; right: -20px; font-size: 120px; opacity: 0.03; transform: rotate(-15deg); pointer-events: none; }
+    
+    .quick-action-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; text-decoration: none; transition: 0.2s; font-weight: 600; text-align: center; height: 100%; }
+    .quick-action-btn i { font-size: 22px; margin-bottom: 8px; color: #4f46e5; }
+    .quick-action-btn:hover { background: #4f46e5; color: white; border-color: #4f46e5; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3); }
     .quick-action-btn:hover i { color: white; }
+
+    .list-group-item { border-color: #f1f5f9; }
+    .rank-badge { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 12px; font-weight: bold; }
 </style>
 
 <div class="container-fluid p-0">
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 gap-3">
         <div>
-            <h2 class="fw-bold text-dark mb-1 fs-3 fs-md-2" style="font-family: 'Playfair Display', serif;">
-                {{ _('Welcome back') }}, {{ current_user.username|capitalize }}! 👋
-            </h2>
-            <p class="text-muted mb-0 small">{{ _("Here's what is happening with your store today.") }}</p>
+            <h3 class="fw-bold text-dark mb-1">{{ _('Overview') }}</h3>
+            <p class="text-muted mb-0 small">{{ _("Here's your store's performance at a glance.") }}</p>
         </div>
-        <div>
-            <div class="badge bg-purple-light px-3 py-2 fs-6 rounded-pill shadow-sm border border-light w-100 text-center">
-                <i class="fas fa-calendar-day me-2"></i><span id="currentDateDisplay"></span>
+        <div class="bg-white border rounded-pill px-4 py-2 shadow-sm fs-6 fw-bold text-muted d-flex align-items-center">
+            <i class="fas fa-calendar-alt text-primary me-2"></i> <span id="liveDate"></span>
+        </div>
+    </div>
+
+    <div class="row g-3 g-md-4 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card kpi-card shadow-sm bg-white h-100 p-4">
+                <i class="fas fa-chart-line bg-pattern"></i>
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px;">{{ _("Today's Revenue") }}</p>
+                        <h3 class="fw-bold text-dark mb-0">{{ "{:,.0f}".format(total_sales) }} <span class="fs-6 text-muted">MMK</span></h3>
+                    </div>
+                    <div class="kpi-icon-wrapper icon-revenue"><i class="fas fa-wallet"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card kpi-card shadow-sm bg-white h-100 p-4">
+                <i class="fas fa-boxes bg-pattern"></i>
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px;">{{ _('Inventory On Hand') }}</p>
+                        <h3 class="fw-bold text-dark mb-0">{{ "{:,.0f}".format(total_stock) }} <span class="fs-6 text-muted">Units</span></h3>
+                    </div>
+                    <div class="kpi-icon-wrapper icon-stock"><i class="fas fa-cubes"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card kpi-card shadow-sm bg-white h-100 p-4">
+                <i class="fas fa-hand-holding-usd bg-pattern"></i>
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px;">{{ _('Accounts Receivable') }}</p>
+                        <h3 class="fw-bold text-success mb-0">{{ "{:,.0f}".format(active_credit) }} <span class="fs-6 text-success opacity-75">MMK</span></h3>
+                    </div>
+                    <div class="kpi-icon-wrapper icon-receivable"><i class="fas fa-users"></i></div>
+                </div>
+                <div class="mt-auto small text-muted"><i class="fas fa-arrow-up text-success me-1"></i> Client Debt</div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card kpi-card shadow-sm bg-white h-100 p-4">
+                <i class="fas fa-file-invoice-dollar bg-pattern"></i>
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px;">{{ _('Accounts Payable') }}</p>
+                        <h3 class="fw-bold text-danger mb-0">{{ "{:,.0f}".format(supplier_debt) }} <span class="fs-6 text-danger opacity-75">MMK</span></h3>
+                    </div>
+                    <div class="kpi-icon-wrapper icon-payable"><i class="fas fa-truck"></i></div>
+                </div>
+                <div class="mt-auto small text-muted"><i class="fas fa-arrow-down text-danger me-1"></i> Supplier Debt</div>
             </div>
         </div>
     </div>
 
     <div class="row g-3 g-md-4 mb-4">
-        <div class="col-12 col-md-4">
-            <div class="card kpi-card shadow-sm border-0 rounded-4 p-3 p-md-4 bg-white h-100">
-                <i class="fas fa-wallet kpi-icon"></i>
-                <div class="d-flex align-items-center mb-2 mb-md-3">
-                    <div class="bg-purple-light rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                        <i class="fas fa-wallet fs-6"></i>
-                    </div>
-                    <h6 class="text-muted fw-bold text-uppercase mb-0 small">{{ _("Today's Revenue") }}</h6>
-                </div>
-                <h3 class="fw-bold text-dark mb-0 fs-4 fs-md-2">{{ "{:,.0f}".format(total_sales) }} <span class="fs-6 text-muted">MMK</span></h3>
+        <div class="col-12 col-xl-8">
+            <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-0"><h6 class="fw-bold text-dark mb-0">{{ _('Gross Volume (7 Days)') }}</h6></div>
+                <div class="card-body p-4 w-100" style="position: relative; height: 350px;"><canvas id="salesChart"></canvas></div>
             </div>
         </div>
-        
-        <div class="col-12 col-md-4">
-            <div class="card kpi-card shadow-sm border-0 rounded-4 p-3 p-md-4 bg-white h-100">
-                <i class="fas fa-boxes kpi-icon"></i>
-                <div class="d-flex align-items-center mb-2 mb-md-3">
-                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                        <i class="fas fa-tshirt fs-6"></i>
+
+        <div class="col-12 col-xl-4">
+            <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-2"><h6 class="fw-bold text-dark mb-0"><i class="fas fa-bolt text-warning me-2"></i>{{ _('Quick Actions') }}</h6></div>
+                <div class="card-body p-4">
+                    <div class="row g-3 h-100">
+                        <div class="col-6"><a href="{{ url_for('pos') }}" class="quick-action-btn"><i class="fas fa-cash-register"></i><span class="small">New Sale</span></a></div>
+                        <div class="col-6"><a href="{{ url_for('purchase_orders') }}" class="quick-action-btn"><i class="fas fa-file-invoice"></i><span class="small">Order Stock</span></a></div>
+                        <div class="col-6"><a href="{{ url_for('reports') }}" class="quick-action-btn"><i class="fas fa-chart-pie"></i><span class="small">View Reports</span></a></div>
+                        <div class="col-6"><a href="{{ url_for('customers') }}" class="quick-action-btn"><i class="fas fa-user-plus"></i><span class="small">Add Client</span></a></div>
                     </div>
-                    <h6 class="text-muted fw-bold text-uppercase mb-0 small">{{ _('Total Items') }}</h6>
                 </div>
-                <h3 class="fw-bold text-dark mb-0 fs-4 fs-md-2">{{ "{:,.0f}".format(total_stock) }} <span class="fs-6 text-muted">Units</span></h3>
-            </div>
-        </div>
-        
-        <div class="col-12 col-md-4">
-            <div class="card kpi-card shadow-sm border-0 rounded-4 p-3 p-md-4 bg-white h-100">
-                <i class="fas fa-file-invoice-dollar kpi-icon"></i>
-                <div class="d-flex align-items-center mb-2 mb-md-3">
-                    <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                        <i class="fas fa-hand-holding-usd fs-6"></i>
-                    </div>
-                    <h6 class="text-muted fw-bold text-uppercase mb-0 small">{{ _('Unpaid Debt') }}</h6>
-                </div>
-                <h3 class="fw-bold text-danger mb-0 fs-4 fs-md-2">{{ "{:,.0f}".format(active_credit) }} <span class="fs-6 text-muted">MMK</span></h3>
             </div>
         </div>
     </div>
 
     <div class="row g-3 g-md-4">
-        <div class="col-12 col-xl-8 col-lg-7">
+        <div class="col-12 col-lg-4">
             <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
-                <div class="card-header bg-white border-0 pt-3 pb-0 px-3 px-md-4">
-                    <h6 class="fw-bold text-dark mb-0"><i class="fas fa-chart-area text-purple me-2"></i>{{ _('7-Day Trend') }}</h6>
-                </div>
-                <div class="card-body p-2 p-md-4 w-100" style="position: relative; height: 300px;">
-                    <canvas id="salesChart"></canvas>
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-2"><h6 class="fw-bold text-dark mb-0"><i class="fas fa-fire text-danger me-2"></i>{{ _('Top Selling Items') }}</h6></div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for item in top_items %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3 border-0 border-bottom border-light">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rank-badge {% if loop.index == 1 %}bg-warning text-dark{% else %}bg-light text-muted{% endif %}">{{ loop.index }}</div>
+                                <span class="fw-bold text-dark small">{{ item.product_name }}</span>
+                            </div>
+                            <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3">{{ item.total_sold }} Sold</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
                 </div>
             </div>
         </div>
 
-        <div class="col-12 col-xl-4 col-lg-5">
+        <div class="col-12 col-lg-4">
             <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
-                <div class="card-header bg-white border-0 pt-3 pb-0 px-3 px-md-4">
-                    <h6 class="fw-bold text-dark mb-0"><i class="fas fa-bolt text-warning me-2"></i>{{ _('Quick Actions') }}</h6>
-                </div>
-                <div class="card-body p-3 p-md-4">
-                    <div class="row g-2 g-md-3">
-                        <div class="col-6">
-                            <a href="{{ url_for('pos') }}" class="quick-action-btn shadow-sm h-100">
-                                <i class="fas fa-cash-register"></i>
-                                <span class="small">New Sale</span>
-                            </a>
-                        </div>
-                        <div class="col-6">
-                            <a href="{{ url_for('inventory') }}" class="quick-action-btn shadow-sm h-100">
-                                <i class="fas fa-box-open"></i>
-                                <span class="small">Add Stock</span>
-                            </a>
-                        </div>
-                        <div class="col-6">
-                            <a href="{{ url_for('reports') }}" class="quick-action-btn shadow-sm h-100">
-                                <i class="fas fa-file-invoice"></i>
-                                <span class="small">Reports</span>
-                            </a>
-                        </div>
-                        <div class="col-6">
-                            <a href="{{ url_for('customers') }}" class="quick-action-btn shadow-sm h-100">
-                                <i class="fas fa-users"></i>
-                                <span class="small">Clients</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-0"><h6 class="fw-bold text-dark mb-0"><i class="fas fa-crown text-warning me-2"></i>{{ _('Top VIP Clients') }}</h6></div>
+                <div class="card-body p-4 text-center" style="position: relative; height: 300px;"><canvas id="customersChart"></canvas></div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-0"><h6 class="fw-bold text-dark mb-0"><i class="fas fa-truck text-info me-2"></i>{{ _('Top Suppliers') }}</h6></div>
+                <div class="card-body p-4 text-center" style="position: relative; height: 300px;"><canvas id="suppliersChart"></canvas></div>
             </div>
         </div>
     </div>
@@ -125,57 +148,48 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const dateOptions = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
-        document.getElementById('currentDateDisplay').innerText = new Date().toLocaleDateString('en-US', dateOptions);
+        document.getElementById('liveDate').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
+        // Colors for Doughnut Charts
+        const pieColors = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#64748b'];
+
+        // 1. 7-Day Line Chart
         const labels = [];
         for (let i = 6; i >= 0; i--) {
-            let d = new Date();
-            d.setDate(d.getDate() - i);
-            if (i === 0) labels.push('Today');
-            else labels.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+            let d = new Date(); d.setDate(d.getDate() - i);
+            labels.push(i === 0 ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short' }));
         }
-
         const ctx = document.getElementById('salesChart').getContext('2d');
         let gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(109, 40, 217, 0.4)');
-        gradient.addColorStop(1, 'rgba(109, 40, 217, 0.0)');
+        gradient.addColorStop(0, 'rgba(79, 70, 229, 0.2)'); gradient.addColorStop(1, 'rgba(79, 70, 229, 0.0)');
 
         new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Revenue',
-                    data: {{ chart_data | safe }},
-                    borderColor: '#6d28d9',
-                    backgroundColor: gradient,
-                    borderWidth: 3,
-                    pointBackgroundColor: '#fff',
-                    pointBorderColor: '#6d28d9',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    fill: true,
-                    tension: 0.4 
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { 
-                        beginAtZero: true,
-                        grid: { color: '#f3f4f6', drawBorder: false },
-                        ticks: { font: { size: window.innerWidth < 768 ? 10 : 12 } }
-                    },
-                    x: { 
-                        grid: { display: false, drawBorder: false },
-                        ticks: { font: { size: window.innerWidth < 768 ? 10 : 12 } }
-                    }
-                }
-            }
+            data: { labels: labels, datasets: [{ label: 'Revenue', data: {{ chart_data | safe }}, borderColor: '#4f46e5', backgroundColor: gradient, borderWidth: 3, fill: true, tension: 0.4 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' }, border: { display: false } }, x: { grid: { display: false }, border: { display: false } } } }
         });
+
+        // 2. Top Customers Doughnut
+        const custLabels = {{ top_customers | map(attribute='name') | list | tojson | safe }};
+        const custData = {{ top_customers | map(attribute='total_spent') | list | tojson | safe }};
+        if(custLabels.length > 0) {
+            new Chart(document.getElementById('customersChart').getContext('2d'), {
+                type: 'doughnut',
+                data: { labels: custLabels, datasets: [{ data: custData, backgroundColor: pieColors, borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } } }
+            });
+        }
+
+        // 3. Top Suppliers Doughnut
+        const supLabels = {{ top_suppliers | map(attribute='name') | list | tojson | safe }};
+        const supData = {{ top_suppliers | map(attribute='total_ordered') | list | tojson | safe }};
+        if(supLabels.length > 0) {
+            new Chart(document.getElementById('suppliersChart').getContext('2d'), {
+                type: 'doughnut',
+                data: { labels: supLabels, datasets: [{ data: supData, backgroundColor: pieColors, borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } } }
+            });
+        }
     });
 </script>
 {% endblock %}
