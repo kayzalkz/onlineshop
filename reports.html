@@ -234,9 +234,10 @@
     </div>
 
     <div class="tab-pane fade" id="pl" role="tabpanel">
-        <div class="row justify-content-center">
-            <div class="col-12 col-md-10 col-lg-8">
-                <div class="card border-0 shadow-sm rounded-4 bg-white p-5">
+        <div class="row g-4">
+            
+            <div class="col-12 col-lg-7">
+                <div class="card border-0 shadow-sm rounded-4 bg-white p-5 h-100">
                     <div class="text-center mb-5">
                         <h4 class="fw-bold text-dark mb-1">Income Statement (P&L)</h4>
                         <p class="text-muted small">All-Time Cumulative</p>
@@ -251,12 +252,79 @@
                         <span class="fw-bold text-danger">- {{ "{:,.0f}".format(total_cost) }}</span>
                     </div>
                     
-                    <div class="d-flex justify-content-between bg-light rounded-3 mt-4 p-4">
-                        <h3 class="fw-bold text-dark mb-0">NET PROFIT</h3>
+                    <div class="d-flex justify-content-between border-bottom border-2 py-3 bg-light px-3 rounded-3 mt-2">
+                        <span class="text-dark fw-bold">GROSS PROFIT</span>
+                        <span class="fw-bold text-primary">{{ "{:,.0f}".format(gross_profit) }}</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between border-bottom py-3 mt-3">
+                        <span class="text-muted fw-bold ps-4">Operating Expenses</span>
+                        <span class="fw-bold text-danger">- {{ "{:,.0f}".format(total_expenses) }}</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between bg-dark text-white rounded-3 mt-4 p-4 shadow-sm">
+                        <h3 class="fw-bold mb-0">NET PROFIT</h3>
                         <h3 class="fw-bold text-success mb-0">{{ "{:,.0f}".format(net_profit) }} MMK</h3>
                     </div>
                 </div>
             </div>
+
+            <div class="col-12 col-lg-5">
+                <div class="card border-0 shadow-sm rounded-4 bg-white p-4 h-100">
+                    <h5 class="fw-bold mb-4 text-dark"><i class="fas fa-wallet text-danger me-2"></i>Record Expense</h5>
+                    
+                    {% if current_user.is_admin %}
+                    <form action="{{ url_for('add_expense') }}" method="POST" class="mb-4 pb-4 border-bottom">
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="small text-muted fw-bold text-uppercase mb-1">Amount (MMK)</label>
+                                <input type="number" name="amount" class="form-control bg-light border-0 fw-bold text-danger" required min="1">
+                            </div>
+                            <div class="col-6">
+                                <label class="small text-muted fw-bold text-uppercase mb-1">Category</label>
+                                <select name="category" class="form-select bg-light border-0 fw-bold text-dark">
+                                    <option value="Shop Rent">Shop Rent</option>
+                                    <option value="Staff Salary">Staff Salary</option>
+                                    <option value="Utilities">Utilities (Electric/Net)</option>
+                                    <option value="Packaging">Packaging & Bags</option>
+                                    <option value="Marketing">Ads & Marketing</option>
+                                    <option value="Other">Other Misc.</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="small text-muted fw-bold text-uppercase mb-1">Description (Optional)</label>
+                            <input type="text" name="description" class="form-control bg-light border-0" placeholder="e.g., March Internet Bill">
+                        </div>
+                        <button type="submit" class="btn btn-danger w-100 fw-bold rounded-3 shadow-sm">Save Expense</button>
+                    </form>
+                    {% else %}
+                        <div class="alert alert-warning small border-0 shadow-sm rounded-3">
+                            <i class="fas fa-lock me-2"></i>Only System Admins can record operating expenses.
+                        </div>
+                    {% endif %}
+
+                    <h6 class="fw-bold text-muted mb-3 text-uppercase small">Recent Expenses</h6>
+                    <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <tbody>
+                                {% for exp in expenses_list %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-dark small">{{ exp.category }}</div>
+                                        <div class="text-muted" style="font-size: 11px;">{{ exp.timestamp.strftime('%d %b, %Y') }} {% if exp.description %}• {{ exp.description }}{% endif %}</div>
+                                    </td>
+                                    <td class="text-end text-danger fw-bold small">-{{ "{:,.0f}".format(exp.amount) }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="2" class="text-center text-muted small py-4 bg-light rounded-3">No expenses recorded yet.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
