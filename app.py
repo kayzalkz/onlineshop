@@ -272,53 +272,94 @@ def receipt(sale_id):
 # INVENTORY ROUTE
 # ==========================================
 
+# ==========================================
+# INVENTORY ROUTE
+# ==========================================
+
 @app.route('/inventory', methods=['GET', 'POST'])
 @login_required
 def inventory():
     if request.method == 'POST':
         action = request.form.get('action')
+        
+        # --- 1. ADD PRODUCT ---
         if action == 'add_product':
-            stock_qty = int(request.form.get('stock', '0'))
-            p = Product(
-                name=request.form.get('name'),
-                category=request.form.get('category'),
-                size=request.form.get('size'),
-                color=request.form.get('color'),
-                purchase_price=Decimal(request.form.get('purchase_price', '0')),
-                selling_price=Decimal(request.form.get('selling_price', '0')),
-                stock=stock_qty
-            )
-            db.session.add(p)
-            db.session.flush()
-            if stock_qty != 0:
-                db.session.add(StockLog(product_id=p.id, quantity=stock_qty, action="Initial Setup", timestamp=get_mmt_time()))
-            flash(_('Product added.'), 'success')
+            name = request.form.get('name', '').strip()
+            size = request.form.get('size', '').strip()
+            color = request.form.get('color', '').strip()
+            
+            # Check for duplicates before saving
+            existing_product = Product.query.filter_by(name=name, size=size, color=color).first()
+            
+            if existing_product:
+                flash(_(f'Error: "{name}" ({size}/{color}) already exists. Please edit the existing item or adjust its stock instead.'), 'danger')
+            else:
+                try:
+                    purchase_price = Decimal(request.form.get('purchase_price', '0'))
+                    selling_price = Decimal(request.form.get('selling_price', '0'))
+                    stock_qty = int(request.form.get('stock', '0'))
+                    
+                    p = Product(
+                        name=name,
+                        category=request.form.get('category'),
+                        size=size,
+                        color=color,
+                        purchase_price=purchase_price,
+                        selling_price=selling_price,
+                        stock=stock_qty
+                    )
+                    db.session.add(p)
+                    db.session.flush()
+                    
+                    if stock_qty != 0:
+                        db.session.add(StockLog(product_id=p.id, quantity=stock_qty, action="Initial Setup", timestamp=get_mmt_time()))
+                        
+                    flash(_('Product added successfully.'), 'success')
+                except ValueError:
+                    flash(_('Error: Invalid numbers entered for price or stock.'), 'danger')
+                    
+        # --- 2. EDIT PRODUCT ---
         elif action == 'edit_product':
             p = Product.query.get(request.form.get('product_id'))
             if p:
-                p.name = request.form.get('name')
-                p.category = request.form.get('category')
-                p.size = request.form.get('size')
-                p.color = request.form.get('color')
-                p.purchase_price = Decimal(request.form.get('purchase_price', '0'))
-                p.selling_price = Decimal(request.form.get('selling_price', '0'))
-                flash(_('Product updated.'), 'success')
+                try:
+                    p.name = request.form.get('name', '').strip()
+                    p.category = request.form.get('category', '').strip()
+                    p.size = request.form.get('size', '').strip()
+                    p.color = request.form.get('color', '').strip()
+                    p.purchase_price = Decimal(request.form.get('purchase_price', '0'))
+                    p.selling_price = Decimal(request.form.get('selling_price', '0'))
+                    flash(_('Product updated successfully.'), 'success')
+                except ValueError:
+                    flash(_('Error: Invalid numbers entered for price.'), 'danger')
+
+        # --- 3. DELETE PRODUCT ---
         elif action == 'delete_product':
             p = Product.query.get(request.form.get('product_id'))
             if p:
+                # Delete logs first to prevent foreign key errors
                 StockLog.query.filter_by(product_id=p.id).delete() 
                 db.session.delete(p)
-                flash(_('Product deleted.'), 'warning')
+                flash(_('Product permanently deleted.'), 'warning')
+                
+        # --- 4. ADJUST STOCK ---
         elif action == 'adjust_stock':
             p = Product.query.get(request.form.get('product_id'))
-            qty_change = int(request.form.get('qty_change', '0'))
-            reason = request.form.get('reason', 'Manual Adjustment')
-            if p and qty_change != 0:
-                p.stock += qty_change
-                db.session.add(StockLog(product_id=p.id, quantity=qty_change, action=reason, timestamp=get_mmt_time()))
-                flash(_('Stock adjusted.'), 'success')
+            try:
+                qty_change = int(request.form.get('qty_change', '0'))
+                reason = request.form.get('reason', 'Manual Adjustment').strip()
+                
+                if p and qty_change != 0:
+                    p.stock += qty_change
+                    db.session.add(StockLog(product_id=p.id, quantity=qty_change, action=reason, timestamp=get_mmt_time()))
+                    flash(_('Stock adjusted successfully.'), 'success')
+            except ValueError:
+                flash(_('Error: Please enter a valid whole number for stock adjustments.'), 'danger')
+                
         db.session.commit()
         return redirect(url_for('inventory'))
+        
+    # GET Request: Render the page
     return render_template('inventory.html', products=Product.query.all())
 
 # ==========================================
