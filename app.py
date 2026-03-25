@@ -617,13 +617,39 @@ def customers():
 @login_required
 def customer_detail(customer_id):
     customer = Customer.query.get_or_404(customer_id)
-    history = Sale.query.filter_by(customer_id=customer_id).order_by(Sale.timestamp.desc()).all()
-    total_spent = sum(s.total_amount for s in history if s.total_amount > 0)
+    
+    # Fetch history oldest to newest to calculate running balance correctly
+    all_history = Sale.query.filter_by(customer_id=customer_id).order_by(Sale.timestamp.asc()).all()
+    
+    statement_data = []
+    current_running_bal = Decimal('0')
+    total_spent = Decimal('0')
+    
+    for sale in all_history:
+        # Debt increases by (Total - Paid). 
+        change = sale.total_amount - sale.amount_paid
+        current_running_bal += change
+        
+        if sale.total_amount > 0:
+            total_spent += sale.total_amount
+            
+        statement_data.append({
+            'date': sale.timestamp,
+            'ref': f"INV#{sale.id}" if sale.total_amount > 0 else "PAYMENT",
+            'desc': ", ".join([i.product_name for i in sale.items]) if sale.items else (sale.payment_info or "Debt Repayment"),
+            'debit': sale.total_amount,
+            'credit': sale.amount_paid,
+            'running_bal': current_running_bal
+        })
+    
+    # Reverse so the newest transaction is at the top
+    statement_data.reverse()
     
     return render_template('customer_detail.html', 
                            customer=customer, 
-                           history=history, 
-                           total_spent=total_spent)
+                           history=statement_data, 
+                           total_spent=total_spent,
+                           now=get_mmt_time()) # ✅ Added this line
 
 @app.route('/customer/repay/<int:customer_id>', methods=['POST'])
 @login_required
