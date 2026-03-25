@@ -1,1001 +1,422 @@
-import os
-import io
-from datetime import datetime, timedelta
-from decimal import Decimal
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
-from flask_sqlalchemy import SQLAlchemy
-from flask_bcrypt import Bcrypt
-from flask_login import LoginManager, UserMixin, login_required, current_user, login_user, logout_user
-from flask_babel import Babel, _
-from sqlalchemy import func
-import pandas as pd
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from werkzeug.utils import secure_filename
+{% extends "base.html" %}
+{% block page_title %}{{ _('Financial Reports & Ledgers') }}{% endblock %}
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'kzl_boutique_secure_2026'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:japu@localhost/pos_system'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+{% block content %}
+<style>
+    /* --- ENTERPRISE REPORTING STYLES --- */
+    .erp-tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.5rem; gap: 1rem; scrollbar-width: none; }
+    .erp-tabs::-webkit-scrollbar { display: none; }
+    .erp-tabs .nav-link { color: #64748b; font-weight: 600; border: none; padding: 10px 5px; background: transparent; position: relative; white-space: nowrap; transition: color 0.2s; }
+    .erp-tabs .nav-link:hover { color: #0f172a; }
+    .erp-tabs .nav-link.active { color: #4f46e5; }
+    .erp-tabs .nav-link.active::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px; background-color: #4f46e5; border-radius: 2px 2px 0 0; }
 
-UPLOAD_FOLDER = 'static/uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-babel = Babel(app, locale_selector=lambda: session.get('lang', 'en'))
-
-db = SQLAlchemy(app)
-bcrypt = Bcrypt(app)
-login_manager = LoginManager(app)
-login_manager.login_view = 'login'
-
-# ==========================================
-# TIMEZONE HELPER (MYANMAR TIME: UTC +6:30)
-# ==========================================
-def get_mmt_time():
-    return datetime.utcnow() + timedelta(hours=6, minutes=30)
-
-# ==========================================
-# DATABASE MODELS
-# ==========================================
-
-class Company(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(150), default="KZL Clothing")
-    address = db.Column(db.Text)
-    phone = db.Column(db.String(50))
-    logo_filename = db.Column(db.String(150))
-
-class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True)
-    password_hash = db.Column(db.String(128))
-    role = db.Column(db.String(20), default='cashier')
-
-class Customer(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(150))
-    phone = db.Column(db.String(20))
-    balance = db.Column(db.Numeric(10, 2), default=0.00)
-
-class Supplier(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(150), nullable=False)
-    contact_person = db.Column(db.String(150))
-    phone = db.Column(db.String(50))
-    address = db.Column(db.Text)
-    balance = db.Column(db.Numeric(10, 2), default=0.00) 
+    .erp-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .erp-table th { background: #f8fafc; color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
+    .erp-table td { padding: 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; font-size: 14px; color: #334155; }
+    .erp-table tbody tr:hover { background-color: #f8fafc; }
     
-    products = db.relationship('Product', backref='supplier', lazy=True)
-
-
-# ---> ဒီ Table အသစ်ကို အောက်မှာ ထပ်တိုးပါ <---
-class SupplierPayment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'), nullable=False)
-    amount = db.Column(db.Numeric(10, 2), nullable=False)
-    payment_method = db.Column(db.String(50)) # cash, kpay, wave
-    reference_note = db.Column(db.String(150)) # e.g., "KBZ Pay Transfer"
-    timestamp = db.Column(db.DateTime, default=get_mmt_time)
+    /* Accounting Alignments */
+    .num-col { text-align: right; font-variant-numeric: tabular-nums; }
     
-    supplier = db.relationship('Supplier', backref='payments', lazy=True)
-
-class Product(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(150))
-    category = db.Column(db.String(50))
-    size = db.Column(db.String(20))
-    color = db.Column(db.String(50)) 
-    purchase_price = db.Column(db.Numeric(10, 2))
-    selling_price = db.Column(db.Numeric(10, 2))
-    stock = db.Column(db.Integer, default=0)
+    /* Soft Badges */
+    .badge-soft-success { background: #dcfce7; color: #166534; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-size: 11px; }
+    .badge-soft-danger { background: #fee2e2; color: #991b1b; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-size: 11px; }
+    .badge-soft-warning { background: #fef9c3; color: #854d0e; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-size: 11px; }
     
-    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'), nullable=True)
+    .filter-bar { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 20px; }
+    .action-icon { color: #94a3b8; transition: 0.2s; background: transparent; border: none; padding: 5px; }
+    .action-icon:hover { color: #4f46e5; transform: scale(1.1); }
+    .action-icon.danger:hover { color: #ef4444; }
+</style>
 
-class PurchaseOrder(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'), nullable=False)
-    status = db.Column(db.String(20), default='Pending') # 'Pending', 'Received', 'Cancelled'
-    total_amount = db.Column(db.Numeric(10, 2), default=0.00)
-    timestamp = db.Column(db.DateTime, default=get_mmt_time)
-    
-    supplier = db.relationship('Supplier', backref='purchase_orders', lazy=True)
-    items = db.relationship('POItem', backref='purchase_order', lazy=True, cascade="all, delete-orphan")
+<ul class="nav erp-tabs" id="reportTabs" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overview" type="button">Master Ledger</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#clientReport" type="button">Accounts Receivable</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#supplierReport" type="button">Accounts Payable</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#pl" type="button">Profit & Loss (P&L)</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#stock" type="button">Inventory Valuation</button></li>
+</ul>
 
-class POItem(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    po_id = db.Column(db.Integer, db.ForeignKey('purchase_order.id'), nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
-    quantity = db.Column(db.Integer, nullable=False)
-    unit_cost = db.Column(db.Numeric(10, 2), nullable=False)
+<div class="tab-content" id="reportTabsContent">
 
-    product = db.relationship('Product', backref='po_items')
-
-class Sale(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    total_amount = db.Column(db.Numeric(10, 2))
-    amount_paid = db.Column(db.Numeric(10, 2))
-    timestamp = db.Column(db.DateTime, default=get_mmt_time)
-    transaction_type = db.Column(db.String(20))
-    payment_method = db.Column(db.String(50))
-    payment_info = db.Column(db.String(100))
-    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=True)
-    
-    items = db.relationship('SaleItem', backref='sale', lazy=True)
-    customer = db.relationship('Customer', backref='sales', lazy=True) 
-
-class SaleItem(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    sale_id = db.Column(db.Integer, db.ForeignKey('sale.id'), nullable=False)
-    product_name = db.Column(db.String(150))
-    quantity = db.Column(db.Integer)
-    price = db.Column(db.Numeric(10, 2))
-    purchase_cost = db.Column(db.Numeric(10, 2))
-
-class StockLog(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
-    quantity = db.Column(db.Integer) 
-    action = db.Column(db.String(100)) 
-    timestamp = db.Column(db.DateTime, default=get_mmt_time)
-    product = db.relationship('Product', backref='stock_logs')
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
-
-@app.context_processor
-def inject_company():
-    return dict(company=Company.query.first())
-
-# ==========================================
-# DASHBOARD ROUTE
-# ==========================================
-@app.route('/')
-@login_required
-def dashboard():
-    today = get_mmt_time().date() 
-    
-    total_sales = db.session.query(func.sum(Sale.total_amount)).filter(func.date(Sale.timestamp) == today).scalar() or 0
-    total_stock = db.session.query(func.sum(Product.stock)).scalar() or 0
-    active_credit = db.session.query(func.sum(Customer.balance)).filter(Customer.balance > 0).scalar() or 0
-    supplier_debt = db.session.query(func.sum(Supplier.balance)).filter(Supplier.balance > 0).scalar() or 0
-    
-    top_items = db.session.query(
-        SaleItem.product_name, 
-        func.sum(SaleItem.quantity).label('total_sold')
-    ).group_by(SaleItem.product_name).order_by(func.sum(SaleItem.quantity).desc()).limit(5).all()
-
-    top_customers = db.session.query(
-        Customer.name,
-        func.sum(Sale.total_amount).label('total_spent')
-    ).join(Sale).group_by(Customer.id).order_by(func.sum(Sale.total_amount).desc()).limit(5).all()
-
-    top_suppliers = db.session.query(
-        Supplier.name,
-        func.sum(PurchaseOrder.total_amount).label('total_ordered')
-    ).join(PurchaseOrder).group_by(Supplier.id).order_by(func.sum(PurchaseOrder.total_amount).desc()).limit(5).all()
-    
-    chart_data = []
-    for i in range(6, -1, -1):
-        day = (today - timedelta(days=i))
-        val = db.session.query(func.sum(Sale.total_amount)).filter(func.date(Sale.timestamp) == day).scalar() or 0
-        chart_data.append(float(val))
-
-    return render_template('dashboard.html', 
-                           total_sales=total_sales, 
-                           total_stock=total_stock, 
-                           active_credit=active_credit, 
-                           supplier_debt=supplier_debt,
-                           top_items=top_items,
-                           top_customers=top_customers,
-                           top_suppliers=top_suppliers,
-                           chart_data=chart_data)
-
-
-
-# ==========================================
-# REPORTS ROUTE
-# ==========================================
-@app.route('/reports')
-@login_required
-def reports():
-    today = get_mmt_time().date() 
-    
-    daily_rev = db.session.query(func.sum(Sale.total_amount)).filter(func.date(Sale.timestamp) == today).scalar() or 0
-    cash_total = db.session.query(func.sum(Sale.amount_paid)).filter(func.date(Sale.timestamp) == today, Sale.payment_method == 'cash').scalar() or 0
-    digital_total = db.session.query(func.sum(Sale.amount_paid)).filter(func.date(Sale.timestamp) == today, Sale.payment_method != 'cash').scalar() or 0
-    credit_total = db.session.query(func.sum(Customer.balance)).filter(Customer.balance > 0).scalar() or 0
-    
-    total_revenue = db.session.query(func.sum(SaleItem.quantity * SaleItem.price)).scalar() or Decimal('0')
-    total_cost = db.session.query(func.sum(SaleItem.quantity * SaleItem.purchase_cost)).scalar() or Decimal('0')
-    net_profit = total_revenue - total_cost
-
-    all_sales = Sale.query.order_by(Sale.timestamp.desc()).all()
-    products = Product.query.all()
-    stock_logs = StockLog.query.order_by(StockLog.timestamp.desc()).limit(200).all()
-    customers = Customer.query.all() 
-    suppliers = Supplier.query.all()
-    
-    chart_data = []
-    for i in range(6, -1, -1):
-        day = (today - timedelta(days=i))
-        val = db.session.query(func.sum(Sale.total_amount)).filter(func.date(Sale.timestamp) == day).scalar() or 0
-        chart_data.append(float(val))
-
-    return render_template('reports.html', 
-                           daily_rev=daily_rev, cash_total=cash_total, digital_total=digital_total, credit_total=credit_total,
-                           all_sales=all_sales, products=products, stock_logs=stock_logs,
-                           customers=customers, suppliers=suppliers,
-                           total_revenue=total_revenue, total_cost=total_cost, net_profit=net_profit, chart_data=chart_data)
-
-
-@app.route('/pos')
-@login_required
-def pos():
-    customers = Customer.query.all()
-    products = Product.query.filter(Product.stock > 0).all()
-    recent_sales = Sale.query.order_by(Sale.timestamp.desc()).limit(15).all()
-    
-    last_sale_id = session.pop('last_sale_id', None)
-    last_sale = Sale.query.get(last_sale_id) if last_sale_id else None
-    
-    return render_template('pos.html', customers=customers, products=products, last_sale=last_sale, recent_sales=recent_sales)
-
-@app.route('/process_sale', methods=['POST'])
-@login_required
-def process_sale():
-    total_amount = Decimal(request.form.get('total_amount', '0'))
-    amount_paid = Decimal(request.form.get('amount_paid', '0'))
-    cust_id = request.form.get('customer_id')
-    p_method = request.form.get('payment_method')
-    p_info = request.form.get('payment_info', '')
-    cart_data = request.form.get('cart_data', '')
-
-    if not cart_data:
-        flash(_('Cart is empty!'), 'danger')
-        return redirect(url_for('pos'))
-
-    # ✅ BUG FIX: Prevent walk-in customers from adding overpayments to the Cash Drawer
-    if not cust_id and amount_paid > total_amount:
-        amount_paid = total_amount
-
-    t_type = 'paid' if amount_paid >= total_amount else 'credit'
-
-    editing_sale_id = session.pop('editing_sale_id', None)
-    
-    if editing_sale_id:
-        sale = Sale.query.get(editing_sale_id)
-        if sale:
-            if sale.customer_id:
-                old_cust = Customer.query.get(sale.customer_id)
-                if old_cust:
-                    old_cust.balance -= (sale.total_amount - sale.amount_paid)
-            
-            products = Product.query.all()
-            for old_item in sale.items:
-                matched = next((p for p in products if p.name in old_item.product_name), None)
-                if matched:
-                    matched.stock += old_item.quantity
-            
-            SaleItem.query.filter_by(sale_id=sale.id).delete()
-            
-            sale.total_amount = total_amount
-            sale.amount_paid = amount_paid
-            sale.transaction_type = t_type
-            sale.payment_method = p_method
-            sale.payment_info = p_info
-            sale.customer_id = cust_id if cust_id else None
-    else:
-        sale = Sale(
-            total_amount=total_amount, amount_paid=amount_paid, transaction_type=t_type,
-            payment_method=p_method, payment_info=p_info, customer_id=cust_id if cust_id else None,
-            timestamp=get_mmt_time()
-        )
-        db.session.add(sale)
-        db.session.flush()
-
-    for item_str in cart_data.split(','):
-        if item_str:
-            p_id, qty = item_str.split(':')
-            qty = int(qty)
-            product = Product.query.get(int(p_id))
-            
-            if product:
-                prod_desc = f"{product.name} ({product.size} - {product.color})" if product.color else f"{product.name} ({product.size})"
-                sale_item = SaleItem(
-                    sale_id=sale.id, product_name=prod_desc, quantity=qty,
-                    price=product.selling_price, purchase_cost=product.purchase_price
-                )
-                db.session.add(sale_item)
-                product.stock -= qty
-
-    if cust_id:
-        customer = Customer.query.get(cust_id)
-        customer.balance += (total_amount - amount_paid)
-
-    db.session.commit()
-    session.pop('edit_cart', None)
-    session.pop('edit_customer', None)
-    session.pop('edit_paid', None)
-    
-    session['last_sale_id'] = sale.id
-    flash(_('Transaction processed successfully!'), 'success')
-    return redirect(url_for('pos'))
-
-@app.route('/edit_sale/<int:sale_id>', methods=['POST'])
-@login_required
-def edit_sale(sale_id):
-    if current_user.role != 'admin':
-        return redirect(url_for('pos'))
-    sale = Sale.query.get_or_404(sale_id)
-    cart_data = {}
-    products = Product.query.all()
-    for item in sale.items:
-        matched_product = next((p for p in products if p.name in item.product_name), None)
-        if matched_product:
-            cart_data[str(matched_product.id)] = {
-                'name': matched_product.name, 'price': float(matched_product.selling_price), 'qty': item.quantity
-            }
-    session['edit_cart'] = cart_data
-    session['edit_customer'] = sale.customer_id if sale.customer_id else ""
-    session['edit_paid'] = float(sale.amount_paid)
-    session['editing_sale_id'] = sale.id 
-    flash(_('Editing Sale #{}. Original record is safe until you click Complete.').format(sale.id), 'info')
-    return redirect(url_for('pos'))
-
-@app.route('/cancel_edit')
-@login_required
-def cancel_edit():
-    session.pop('editing_sale_id', None)
-    session.pop('edit_cart', None)
-    session.pop('edit_customer', None)
-    session.pop('edit_paid', None)
-    flash(_('Edit cancelled. The original sale remains unchanged.'), 'warning')
-    return redirect(url_for('pos'))
-
-@app.route('/delete_sale/<int:sale_id>', methods=['POST'])
-@login_required
-def delete_sale(sale_id):
-    if current_user.role != 'admin': return redirect(url_for('reports'))
-    sale = Sale.query.get_or_404(sale_id)
-    if sale.customer_id:
-        customer = Customer.query.get(sale.customer_id)
-        if customer: customer.balance -= (sale.total_amount - sale.amount_paid)
-    products = Product.query.all()
-    for item in sale.items:
-        matched = next((p for p in products if p.name in item.product_name), None)
-        if matched: matched.stock += item.quantity
-    SaleItem.query.filter_by(sale_id=sale.id).delete()
-    db.session.delete(sale)
-    db.session.commit()
-    flash(_('Sale permanently voided and stock restored.'), 'warning')
-    return redirect(request.referrer or url_for('reports'))
-
-@app.route('/receipt/<int:sale_id>')
-@login_required
-def receipt(sale_id):
-    sale = Sale.query.get_or_404(sale_id)
-    return render_template('receipt.html', sale=sale)
-
-
-# ==========================================
-# PURCHASE ORDER (PO) ROUTES
-# ==========================================
-
-@app.route('/purchase_orders')
-@login_required
-def purchase_orders():
-    pos = PurchaseOrder.query.order_by(PurchaseOrder.timestamp.desc()).all()
-    suppliers = Supplier.query.all()
-    products = Product.query.all()
-    return render_template('purchase_orders.html', pos=pos, suppliers=suppliers, products=products)
-
-@app.route('/po/create', methods=['POST'])
-@login_required
-def create_po():
-    supplier_id = request.form.get('supplier_id')
-    product_ids = request.form.getlist('product_id[]')
-    quantities = request.form.getlist('quantity[]')
-    costs = request.form.getlist('unit_cost[]')
-
-    if not supplier_id or not product_ids:
-        flash(_('Invalid Purchase Order data.'), 'danger')
-        return redirect(url_for('purchase_orders'))
-
-    po = PurchaseOrder(supplier_id=supplier_id, status='Pending', total_amount=0)
-    db.session.add(po)
-    db.session.flush() 
-
-    total_amount = Decimal('0')
-
-    for i in range(len(product_ids)):
-        if product_ids[i] and int(quantities[i]) > 0:
-            qty = int(quantities[i])
-            cost = Decimal(costs[i])
-            
-            po_item = POItem(po_id=po.id, product_id=product_ids[i], quantity=qty, unit_cost=cost)
-            db.session.add(po_item)
-            total_amount += (cost * qty)
-
-    po.total_amount = total_amount
-    db.session.commit()
-    flash(_('Purchase Order #{} created successfully.').format(po.id), 'success')
-    return redirect(url_for('purchase_orders'))
-
-@app.route('/po/receive/<int:po_id>', methods=['POST'])
-@login_required
-def receive_po(po_id):
-    po = PurchaseOrder.query.get_or_404(po_id)
-    
-    if po.status == 'Pending':
-        po.status = 'Received'
-        po.supplier.balance += po.total_amount 
+    <div class="tab-pane fade show active" id="overview" role="tabpanel">
         
-        for item in po.items:
-            item.product.stock += item.quantity
-            db.session.add(StockLog(
-                product_id=item.product.id, 
-                quantity=item.quantity, 
-                action=f"Received via PO #{po.id}", 
-                timestamp=get_mmt_time()
-            ))
-            
-        db.session.commit()
-        flash(_('Goods received! Inventory stock and supplier balances have been updated.'), 'success')
-        
-    return redirect(url_for('purchase_orders'))
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-primary border-4">
+                    <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Today's Revenue</p>
+                    <h4 class="fw-bold text-dark mb-0">{{ "{:,.0f}".format(daily_rev) }} <span class="fs-6 text-muted fw-normal">MMK</span></h4>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-success border-4">
+                    <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Cash Drawer</p>
+                    <h4 class="fw-bold text-success mb-0">{{ "{:,.0f}".format(cash_total) }} <span class="fs-6 text-success opacity-75 fw-normal">MMK</span></h4>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-info border-4">
+                    <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Digital Paid</p>
+                    <h4 class="fw-bold text-info mb-0">{{ "{:,.0f}".format(digital_total) }} <span class="fs-6 text-info opacity-75 fw-normal">MMK</span></h4>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-danger border-4">
+                    <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Unpaid Credit</p>
+                    <h4 class="fw-bold text-danger mb-0">{{ "{:,.0f}".format(credit_total) }} <span class="fs-6 text-danger opacity-75 fw-normal">MMK</span></h4>
+                </div>
+            </div>
+        </div>
 
-@app.route('/po/cancel/<int:po_id>', methods=['POST'])
-@login_required
-def cancel_po(po_id):
-    po = PurchaseOrder.query.get_or_404(po_id)
-    if po.status == 'Pending':
-        po.status = 'Cancelled'
-        db.session.commit()
-        flash(_('Purchase Order #{} cancelled.').format(po.id), 'warning')
-    return redirect(url_for('purchase_orders'))
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden mb-4">
+            <div class="filter-bar m-3 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-filter text-muted"></i>
+                    <select class="form-select form-select-sm border-0 bg-white fw-bold shadow-sm" style="width: 150px;" id="dateFilter" onchange="toggleCustomDate()">
+                        <option value="all">All Time</option>
+                        <option value="daily">Today</option>
+                        <option value="weekly">This Week</option>
+                        <option value="monthly">This Month</option>
+                        <option value="custom">Custom Date...</option>
+                    </select>
+                    <div id="customDateRange" class="d-none align-items-center gap-2">
+                        <input type="date" id="startDate" class="form-control form-control-sm border-0 shadow-sm" onchange="filterTableByDate()">
+                        <span class="text-muted small fw-bold">to</span>
+                        <input type="date" id="endDate" class="form-control form-control-sm border-0 shadow-sm" onchange="filterTableByDate()">
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('export_excel') }}" class="btn btn-sm btn-outline-success fw-bold px-3"><i class="fas fa-file-excel me-1"></i> CSV / Excel</a>
+                    <a href="{{ url_for('export_pdf') }}" class="btn btn-sm btn-outline-danger fw-bold px-3"><i class="fas fa-file-pdf me-1"></i> Print PDF</a>
+                </div>
+            </div>
 
-# ==========================================
-# INVENTORY ROUTE
-# ==========================================
+            <div class="table-responsive">
+                <table class="table erp-table mb-0" style="min-width: 1000px;">
+                    <thead>
+                        <tr>
+                            <th>Ref #</th>
+                            <th>Date & Time</th>
+                            <th>Client / Customer</th>
+                            <th>Method</th>
+                            <th class="text-end">Amount Details</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center"><i class="fas fa-cog"></i></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in all_sales %}
+                        <tr class="sale-row" data-date="{{ sale.timestamp.strftime('%Y-%m-%d') }}">
+                            <td class="fw-bold text-muted small">#{{ sale.id }}</td>
+                            <td class="small">{{ sale.timestamp.strftime('%d %b, %Y %H:%M') }}</td>
+                            <td class="fw-bold">{{ sale.customer.name if sale.customer else 'Walk-in Customer' }}</td>
+                            <td><span class="text-uppercase small fw-bold text-muted">{{ sale.payment_method }}</span></td>
+                            
+                            <td class="text-end">
+                                <div class="fw-bold text-dark">{{ "{:,.0f}".format(sale.total_amount) }} MMK</div>
+                                <small class="text-muted d-block" style="font-size: 11px;">PAID: {{ "{:,.0f}".format(sale.amount_paid) }} MMK</small>
+                                {% if sale.amount_paid > sale.total_amount %}
+                                    <small class="text-success fw-bold d-block" style="font-size: 11px;">CHANGE: {{ "{:,.0f}".format(sale.amount_paid - sale.total_amount) }} MMK</small>
+                                {% endif %}
+                            </td>
 
-@app.route('/inventory', methods=['GET', 'POST'])
-@login_required
-def inventory():
-    if request.method == 'POST':
-        action = request.form.get('action')
-        
-        # Extract supplier ID properly
-        supplier_id = request.form.get('supplier_id')
-        if supplier_id == "":
-            supplier_id = None
-        
-        if action == 'add_product':
-            name = request.form.get('name', '').strip()
-            size = request.form.get('size', '').strip()
-            color = request.form.get('color', '').strip()
-            
-            existing_product = Product.query.filter_by(name=name, size=size, color=color).first()
-            
-            if existing_product:
-                flash(_(f'Error: "{name}" ({size}/{color}) already exists. Please edit the existing item or adjust its stock instead.'), 'danger')
-            else:
-                try:
-                    purchase_price = Decimal(request.form.get('purchase_price', '0'))
-                    selling_price = Decimal(request.form.get('selling_price', '0'))
-                    stock_qty = int(request.form.get('stock', '0'))
-                    
-                    # ✅ BUG FIX: Save the supplier_id when creating a new product
-                    p = Product(
-                        name=name,
-                        category=request.form.get('category'),
-                        size=size,
-                        color=color,
-                        purchase_price=purchase_price,
-                        selling_price=selling_price,
-                        stock=stock_qty,
-                        supplier_id=supplier_id
-                    )
-                    db.session.add(p)
-                    db.session.flush()
-                    
-                    if stock_qty != 0:
-                        db.session.add(StockLog(product_id=p.id, quantity=stock_qty, action="Initial Setup", timestamp=get_mmt_time()))
+                            <td class="text-center">
+                                {% if sale.amount_paid >= sale.total_amount %}
+                                    <span class="badge-soft-success">PAID</span>
+                                {% else %}
+                                    <span class="badge-soft-danger">DEBT</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center text-nowrap">
+                                <a href="{{ url_for('receipt', sale_id=sale.id) }}" target="_blank" class="action-icon"><i class="fas fa-print"></i></a>
+                                {% if current_user.role == 'admin' %}
+                                <form action="{{ url_for('edit_sale', sale_id=sale.id) }}" method="POST" class="d-inline"><button type="submit" class="action-icon"><i class="fas fa-edit"></i></button></form>
+                                <form action="{{ url_for('delete_sale', sale_id=sale.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Permanently void this transaction?');"><button type="submit" class="action-icon danger"><i class="fas fa-trash"></i></button></form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="clientReport" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden">
+            <div class="filter-bar m-3 d-flex justify-content-between align-items-center">
+                <select id="customerStatusFilter" class="form-select form-select-sm border-0 shadow-sm fw-bold w-auto" onchange="filterCustomers()">
+                    <option value="all">All Clients</option>
+                    <option value="debt">Owes Store (Receivable)</option>
+                    <option value="credit">Store Credit (Liability)</option>
+                    <option value="settled">Settled (Zero Balance)</option>
+                </select>
+                <a href="{{ url_for('export_customers_excel') }}" class="btn btn-sm btn-outline-success fw-bold px-3"><i class="fas fa-file-excel me-1"></i> Export</a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table erp-table mb-0" style="min-width: 800px;">
+                    <thead>
+                        <tr>
+                            <th>Client Name</th>
+                            <th>Contact Info</th>
+                            <th>Last Activity</th>
+                            <th class="text-center">Account Status</th>
+                            <th class="num-col">Current Balance (MMK)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in customers %}
+                        {% set status = 'settled' %}
+                        {% if c.balance > 0 %}{% set status = 'debt' %}{% elif c.balance < 0 %}{% set status = 'credit' %}{% endif %}
                         
-                    flash(_('Product added successfully.'), 'success')
-                except ValueError:
-                    flash(_('Error: Invalid numbers entered for price or stock.'), 'danger')
+                        <tr class="customer-row" data-status="{{ status }}">
+                            <td class="fw-bold">
+                                <a href="{{ url_for('customer_detail', customer_id=c.id) }}" class="text-decoration-none text-primary" title="View Full Profile">
+                                    {{ c.name }}
+                                </a>
+                                <br><span class="small text-muted fw-normal">ID: #{{ c.id }}</span>
+                            </td>
+                            <td>{{ c.phone }}</td>
+                            <td class="small text-muted">{% if c.sales %}{{ (c.sales|sort(attribute='timestamp', reverse=True)|first).timestamp.strftime('%d %b, %Y') }}{% else %}--{% endif %}</td>
+                            <td class="text-center">
+                                {% if c.balance > 0 %}<span class="badge-soft-danger">OWES STORE</span>
+                                {% elif c.balance < 0 %}<span class="badge-soft-warning">STORE CREDIT</span>
+                                {% else %}<span class="badge-soft-success">SETTLED</span>{% endif %}
+                            </td>
+                            <td class="num-col fw-bold fs-6 {% if c.balance > 0 %}text-danger{% elif c.balance < 0 %}text-success{% endif %}">
+                                {{ "{:,.0f}".format(c.balance|abs) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="supplierReport" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden">
+            <div class="p-4 border-bottom bg-light">
+                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-truck text-muted me-2"></i>Accounts Payable Ledger</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table erp-table mb-0" style="min-width: 800px;">
+                    <thead>
+                        <tr>
+                            <th>Supplier / Vendor</th>
+                            <th>Contact Person</th>
+                            <th>Phone</th>
+                            <th class="text-center">Status</th>
+                            <th class="num-col">Total Owed (MMK)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in suppliers %}
+                        <tr>
+                            <td class="fw-bold">{{ s.name }}</td>
+                            <td>{{ s.contact_person or '--' }}</td>
+                            <td>{{ s.phone or '--' }}</td>
+                            <td class="text-center">
+                                {% if s.balance > 0 %}<span class="badge-soft-danger">PENDING PAYMENT</span>
+                                {% else %}<span class="badge-soft-success">CLEARED</span>{% endif %}
+                            </td>
+                            <td class="num-col fw-bold fs-6 {% if s.balance > 0 %}text-danger{% endif %}">
+                                {{ "{:,.0f}".format(s.balance) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="pl" role="tabpanel">
+        <div class="row g-4">
+            
+            <div class="col-12 col-lg-7">
+                <div class="card border-0 shadow-sm rounded-4 bg-white p-5 h-100">
+                    <div class="text-center mb-5">
+                        <h4 class="fw-bold text-dark mb-1">Income Statement (P&L)</h4>
+                        <p class="text-muted small">All-Time Cumulative</p>
+                    </div>
                     
-        elif action == 'edit_product':
-            p = Product.query.get(request.form.get('product_id'))
-            if p:
-                try:
-                    p.name = request.form.get('name', '').strip()
-                    p.category = request.form.get('category', '').strip()
-                    p.size = request.form.get('size', '').strip()
-                    p.color = request.form.get('color', '').strip()
-                    p.purchase_price = Decimal(request.form.get('purchase_price', '0'))
-                    p.selling_price = Decimal(request.form.get('selling_price', '0'))
+                    <div class="d-flex justify-content-between border-bottom border-2 py-3">
+                        <span class="text-dark fw-bold fs-5">Gross Revenue</span>
+                        <span class="fw-bold text-dark fs-5">{{ "{:,.0f}".format(total_revenue) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom py-3">
+                        <span class="text-muted fw-bold ps-4">Cost of Goods Sold (COGS)</span>
+                        <span class="fw-bold text-danger">- {{ "{:,.0f}".format(total_cost) }}</span>
+                    </div>
                     
-                    # ✅ BUG FIX: Update the supplier_id when editing
-                    p.supplier_id = supplier_id
+                    <div class="d-flex justify-content-between border-bottom border-2 py-3 bg-light px-3 rounded-3 mt-2">
+                        <span class="text-dark fw-bold">GROSS PROFIT</span>
+                        <span class="fw-bold text-primary">{{ "{:,.0f}".format(gross_profit) }}</span>
+                    </div>
                     
-                    flash(_('Product updated successfully.'), 'success')
-                except ValueError:
-                    flash(_('Error: Invalid numbers entered for price.'), 'danger')
+                    <div class="d-flex justify-content-between border-bottom py-3 mt-3">
+                        <span class="text-muted fw-bold ps-4">Operating Expenses</span>
+                        <span class="fw-bold text-danger">- {{ "{:,.0f}".format(total_expenses) }}</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between bg-dark text-white rounded-3 mt-4 p-4 shadow-sm">
+                        <h3 class="fw-bold mb-0">NET PROFIT</h3>
+                        <h3 class="fw-bold text-success mb-0">{{ "{:,.0f}".format(net_profit) }} MMK</h3>
+                    </div>
+                </div>
+            </div>
 
-        elif action == 'delete_product':
-            p = Product.query.get(request.form.get('product_id'))
-            if p:
-                StockLog.query.filter_by(product_id=p.id).delete() 
-                db.session.delete(p)
-                flash(_('Product permanently deleted.'), 'warning')
-                
-        elif action == 'adjust_stock':
-            p = Product.query.get(request.form.get('product_id'))
-            try:
-                qty_change = int(request.form.get('qty_change', '0'))
-                reason = request.form.get('reason', 'Manual Adjustment').strip()
-                
-                if p and qty_change != 0:
-                    p.stock += qty_change
-                    db.session.add(StockLog(product_id=p.id, quantity=qty_change, action=reason, timestamp=get_mmt_time()))
-                    flash(_('Stock adjusted successfully.'), 'success')
-            except ValueError:
-                flash(_('Error: Please enter a valid whole number for stock adjustments.'), 'danger')
-                
-        db.session.commit()
-        return redirect(url_for('inventory'))
+            <div class="col-12 col-lg-5">
+                <div class="card border-0 shadow-sm rounded-4 bg-white p-4 h-100">
+                    <h5 class="fw-bold mb-4 text-dark"><i class="fas fa-wallet text-danger me-2"></i>Record Expense</h5>
+                    
+                    {% if current_user.is_admin %}
+                    <form action="{{ url_for('add_expense') }}" method="POST" class="mb-4 pb-4 border-bottom">
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="small text-muted fw-bold text-uppercase mb-1">Amount (MMK)</label>
+                                <input type="number" name="amount" class="form-control bg-light border-0 fw-bold text-danger" required min="1">
+                            </div>
+                            <div class="col-6">
+                                <label class="small text-muted fw-bold text-uppercase mb-1">Category</label>
+                                <select name="category" class="form-select bg-light border-0 fw-bold text-dark">
+                                    <option value="Shop Rent">Shop Rent</option>
+                                    <option value="Staff Salary">Staff Salary</option>
+                                    <option value="Utilities">Utilities (Electric/Net)</option>
+                                    <option value="Packaging">Packaging & Bags</option>
+                                    <option value="Marketing">Ads & Marketing</option>
+                                    <option value="Other">Other Misc.</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="small text-muted fw-bold text-uppercase mb-1">Description (Optional)</label>
+                            <input type="text" name="description" class="form-control bg-light border-0" placeholder="e.g., March Internet Bill">
+                        </div>
+                        <button type="submit" class="btn btn-danger w-100 fw-bold rounded-3 shadow-sm">Save Expense</button>
+                    </form>
+                    {% else %}
+                        <div class="alert alert-warning small border-0 shadow-sm rounded-3">
+                            <i class="fas fa-lock me-2"></i>Only System Admins can record operating expenses.
+                        </div>
+                    {% endif %}
+
+                    <h6 class="fw-bold text-muted mb-3 text-uppercase small">Recent Expenses</h6>
+                    <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <tbody>
+                                {% for exp in expenses_list %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-dark small">{{ exp.category }}</div>
+                                        <div class="text-muted" style="font-size: 11px;">{{ exp.timestamp.strftime('%d %b, %Y') }} {% if exp.description %}• {{ exp.description }}{% endif %}</div>
+                                    </td>
+                                    <td class="text-end text-danger fw-bold small">-{{ "{:,.0f}".format(exp.amount) }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="2" class="text-center text-muted small py-4 bg-light rounded-3">No expenses recorded yet.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="stock" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden">
+             <div class="p-4 border-bottom bg-light">
+                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-boxes text-muted me-2"></i>Asset Valuation</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table erp-table mb-0" style="min-width: 800px;">
+                    <thead>
+                        <tr>
+                            <th>SKU / Product Name</th>
+                            <th>Category</th>
+                            <th class="num-col">Qty on Hand</th>
+                            <th class="num-col">Total Asset Cost (COGS)</th>
+                            <th class="num-col">Potential Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in products %}
+                        <tr>
+                            <td class="fw-bold">{{ p.name }} <span class="badge bg-light text-muted ms-2">{{ p.size }}</span></td>
+                            <td>{{ p.category }}</td>
+                            <td class="num-col fw-bold {% if p.stock <= 5 %}text-danger{% endif %}">{{ p.stock }}</td>
+                            <td class="num-col text-muted">{{ "{:,.0f}".format(p.stock * p.purchase_price) }}</td>
+                            <td class="num-col text-success fw-bold">{{ "{:,.0f}".format(p.stock * p.selling_price) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// Enterprise Date Filtering Script
+function toggleCustomDate() {
+    const filter = document.getElementById('dateFilter').value;
+    const customDiv = document.getElementById('customDateRange');
+    if (filter === 'custom') {
+        customDiv.classList.remove('d-none');
+        customDiv.classList.add('d-flex');
+    } else {
+        customDiv.classList.add('d-none');
+        customDiv.classList.remove('d-flex');
+        filterTableByDate(); 
+    }
+}
+
+function filterTableByDate() {
+    const filter = document.getElementById('dateFilter').value;
+    const rows = document.getElementsByClassName('sale-row');
+    const today = new Date();
+    const offset = today.getTimezoneOffset() * 60000;
+    const localToday = new Date(today.getTime() - offset);
+    const todayString = localToday.toISOString().split('T')[0];
+    
+    const firstDayOfWeek = new Date(localToday);
+    firstDayOfWeek.setDate(localToday.getDate() - localToday.getDay());
+    const firstDayString = firstDayOfWeek.toISOString().split('T')[0];
+    
+    const currentMonth = localToday.getMonth();
+    const currentYear = localToday.getFullYear();
+    const startInput = document.getElementById('startDate').value;
+    const endInput = document.getElementById('endDate').value;
+
+    for (let row of rows) {
+        let rowDateStr = row.getAttribute('data-date');
+        let rowDateObj = new Date(rowDateStr + 'T12:00:00Z'); 
+        let showRow = true;
+
+        if (filter === 'daily') { showRow = (rowDateStr === todayString); } 
+        else if (filter === 'weekly') { showRow = (rowDateStr >= firstDayString); } 
+        else if (filter === 'monthly') { showRow = (rowDateObj.getUTCMonth() === currentMonth && rowDateObj.getUTCFullYear() === currentYear); } 
+        else if (filter === 'custom' && startInput && endInput) { showRow = (rowDateStr >= startInput && rowDateStr <= endInput); }
         
-    return render_template('inventory.html', 
-                           products=Product.query.all(), 
-                           suppliers=Supplier.query.all())
+        row.style.display = showRow ? "" : "none";
+    }
+}
 
-# ==========================================
-# SUPPLIER MANAGEMENT ROUTES
-# ==========================================
-
-@app.route('/suppliers', methods=['GET', 'POST'])
-@login_required
-def suppliers():
-    if request.method == 'POST':
-        action = request.form.get('action', 'add')
-        
-        if action == 'add':
-            s = Supplier(
-                name=request.form.get('name'),
-                contact_person=request.form.get('contact_person'),
-                phone=request.form.get('phone'),
-                address=request.form.get('address'),
-                balance=Decimal(request.form.get('balance', '0'))
-            )
-            db.session.add(s)
-            flash(_('Supplier registered successfully.'), 'success')
-            
-        elif action == 'edit':
-            s = Supplier.query.get(request.form.get('supplier_id'))
-            if s:
-                s.name = request.form.get('name')
-                s.contact_person = request.form.get('contact_person')
-                s.phone = request.form.get('phone')
-                s.balance = request.form.get('balance', s.balance) # Update balance as well
-                flash(_('Supplier details updated.'), 'success')
-                
-        elif action == 'delete':
-            s = Supplier.query.get(request.form.get('supplier_id'))
-            if s:
-                # DATABASE FIX: Check if supplier has history before deleting
-                has_orders = PurchaseOrder.query.filter_by(supplier_id=s.id).first()
-                has_payments = SupplierPayment.query.filter_by(supplier_id=s.id).first()
-                
-                if has_orders or has_payments:
-                    flash(_('Error: Cannot delete this supplier because they have existing Purchase Orders or Payments. Please edit their details instead.'), 'danger')
-                else:
-                    for p in s.products:
-                        p.supplier_id = None
-                    db.session.delete(s)
-                    flash(_('Supplier removed from system.'), 'warning')
-                
-        db.session.commit()
-        return redirect(url_for('suppliers'))
-
-    return render_template('suppliers.html', suppliers=Supplier.query.all())
-
-@app.route('/supplier/pay/<int:supplier_id>', methods=['POST'])
-@login_required
-def supplier_pay(supplier_id):
-    supplier = Supplier.query.get_or_404(supplier_id)
+// AR/AP Status Filter
+function filterCustomers() {
+    const filterValue = document.getElementById('customerStatusFilter').value;
+    const rows = document.querySelectorAll('.customer-row');
     
-    try:
-        amount = Decimal(request.form.get('amount', '0'))
-    except:
-        amount = Decimal('0')
-
-    payment_method = request.form.get('payment_method', 'cash')
-    reference_note = request.form.get('reference_note', '')
-
-    if amount > 0:
-        # ၁။ Supplier ရဲ့ Balance ထဲကနေ နှုတ်မည်
-        supplier.balance -= amount
-        
-        # ၂။ Payment မှတ်တမ်းအသစ်ကို Voucher သဘောမျိုး သိမ်းမည်
-        payment = SupplierPayment(
-            supplier_id=supplier.id,
-            amount=amount,
-            payment_method=payment_method,
-            reference_note=reference_note,
-            timestamp=get_mmt_time()
-        )
-        db.session.add(payment)
-        db.session.commit()
-        flash(f'Payment of {amount:,.0f} MMK recorded for {supplier.name}.', 'success')
-    else:
-        flash('Invalid payment amount.', 'danger')
-
-    return redirect(url_for('suppliers'))
-
-@app.route('/supplier/<int:supplier_id>')
-@login_required
-def supplier_detail(supplier_id):
-    supplier = Supplier.query.get_or_404(supplier_id)
-    
-    # ၁။ Supplier ဆီက မှာယူခဲ့သမျှ PO များ
-    pos = PurchaseOrder.query.filter_by(supplier_id=supplier_id, status='Received').all()
-    # ၂။ Supplier ကို ငွေပြန်ဆပ်ခဲ့သမျှ မှတ်တမ်းများ
-    payments = SupplierPayment.query.filter_by(supplier_id=supplier_id).all()
-    
-    # ၃။ PO နှင့် Payment များကို တစ်ခုတည်းဖြစ်အောင် ပေါင်းပြီး ရက်စွဲအလိုက် စီမည်
-    combined = []
-    for po in pos:
-        combined.append({
-            'date': po.timestamp,
-            'ref': f"PO#{po.id}",
-            'desc': f"Stock In: {sum(i.quantity for i in po.items)} items",
-            'debit': po.total_amount, # ဆိုင်က ပေးရန်တိုးလာခြင်း
-            'credit': Decimal('0')
-        })
-        
-    for p in payments:
-        combined.append({
-            'date': p.timestamp,
-            'ref': f"PAY#{p.id}",
-            'desc': f"Payment ({p.payment_method.upper()}) - {p.reference_note}",
-            'debit': Decimal('0'),
-            'credit': p.amount # ဆိုင်က ပြန်ဆပ်လိုက်ခြင်း
-        })
-        
-    # ရက်စွဲအလိုက် အဟောင်းမှ အသစ်သို့ စီစဉ်မည်
-    combined.sort(key=lambda x: x['date'])
-    
-    statement_data = []
-    current_running_bal = Decimal('0')
-    total_ordered = Decimal('0')
-    
-    for item in combined:
-        current_running_bal += item['debit']
-        current_running_bal -= item['credit']
-        total_ordered += item['debit']
-        
-        statement_data.append({
-            'date': item['date'],
-            'ref': item['ref'],
-            'desc': item['desc'],
-            'debit': item['debit'],
-            'credit': item['credit'],
-            'running_bal': current_running_bal
-        })
-        
-    statement_data.reverse() # အသစ်ဆုံးကို အပေါ်မှာပြရန်
-    
-    return render_template('supplier_detail.html', 
-                           supplier=supplier, 
-                           history=statement_data, 
-                           total_ordered=total_ordered,
-                           now=get_mmt_time())
-
-# ==========================================
-# MANAGEMENT ROUTES
-# ==========================================
-
-@app.route('/customers', methods=['GET', 'POST'])
-@login_required
-def customers():
-    if request.method == 'POST':
-        c = Customer(name=request.form.get('name'), phone=request.form.get('phone'))
-        db.session.add(c)
-        db.session.commit()
-    return render_template('customers.html', customers=Customer.query.all())
-
-@app.route('/customer/<int:customer_id>')
-@login_required
-def customer_detail(customer_id):
-    customer = Customer.query.get_or_404(customer_id)
-    
-    # Fetch history oldest to newest to calculate running balance correctly
-    all_history = Sale.query.filter_by(customer_id=customer_id).order_by(Sale.timestamp.asc()).all()
-    
-    statement_data = []
-    current_running_bal = Decimal('0')
-    total_spent = Decimal('0')
-    
-    for sale in all_history:
-        # Debt increases by (Total - Paid). 
-        change = sale.total_amount - sale.amount_paid
-        current_running_bal += change
-        
-        if sale.total_amount > 0:
-            total_spent += sale.total_amount
-            
-        statement_data.append({
-            'date': sale.timestamp,
-            'ref': f"INV#{sale.id}" if sale.total_amount > 0 else "PAYMENT",
-            'desc': ", ".join([i.product_name for i in sale.items]) if sale.items else (sale.payment_info or "Debt Repayment"),
-            'debit': sale.total_amount,
-            'credit': sale.amount_paid,
-            'running_bal': current_running_bal
-        })
-    
-    # Reverse so the newest transaction is at the top
-    statement_data.reverse()
-    
-    return render_template('customer_detail.html', 
-                           customer=customer, 
-                           history=statement_data, 
-                           total_spent=total_spent,
-                           now=get_mmt_time()) # ✅ Added this line
-
-@app.route('/customer/repay/<int:customer_id>', methods=['POST'])
-@login_required
-def customer_repay(customer_id):
-    customer = Customer.query.get_or_404(customer_id)
-    action = request.form.get('action')
-    amount = Decimal(request.form.get('amount', '0'))
-    payment_method = request.form.get('payment_method', 'cash')
-    payment_info = request.form.get('payment_info', '')
-
-    if amount > 0:
-        if action == 'pay_debt':
-            customer.balance -= amount
-        elif action == 'add_credit':
-            customer.balance -= amount
-        
-        new_repayment = Sale(
-            customer_id=customer.id,
-            total_amount=0,
-            amount_paid=amount,
-            payment_method=payment_method,
-            payment_info=f"Repayment/Credit: {payment_info}",
-            timestamp=get_mmt_time()
-        )
-        
-        db.session.add(new_repayment)
-        db.session.commit()
-        flash(f'Successfully processed {amount:,.0f} MMK for {customer.name}', 'success')
-    else:
-        flash('Invalid amount.', 'danger')
-
-    return redirect(url_for('customers'))
-
-@app.route('/company', methods=['GET', 'POST'])
-@login_required
-def company_profile():
-    if current_user.role != 'admin': return redirect(url_for('dashboard'))
-    
-    profile = Company.query.first()
-    
-    if request.method == 'POST':
-        if profile is None:
-            profile = Company()
-            db.session.add(profile)
-            
-        profile.name = request.form.get('name')
-        profile.phone = request.form.get('phone')
-        profile.address = request.form.get('address')
-        
-        logo_file = request.files.get('logo')
-        if logo_file and logo_file.filename != '':
-            filename = secure_filename(logo_file.filename)
-            logo_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            profile.logo_filename = filename
-            
-        db.session.commit()
-        flash(_('Store Configuration Updated'), 'success')
-        return redirect(url_for('company_profile'))
-        
-    return render_template('profile.html', profile=profile)
-
-@app.route('/users', methods=['GET', 'POST'])
-@login_required
-def manage_users():
-    if current_user.role != 'admin': 
-        return redirect(url_for('dashboard'))
-        
-    if request.method == 'POST':
-        action = request.form.get('action', 'create')
-
-        if action == 'create':
-            hashed_pw = bcrypt.generate_password_hash(request.form.get('password')).decode('utf-8')
-            u = User(username=request.form.get('username'), password_hash=hashed_pw, role=request.form.get('role'))
-            db.session.add(u)
-            flash(_('Staff account created.'), 'success')
-            
-        elif action == 'edit':
-            user_id = request.form.get('user_id')
-            u = User.query.get(user_id)
-            if u and u.username != 'admin': 
-                u.role = request.form.get('role')
-                new_pw = request.form.get('password')
-                if new_pw and new_pw.strip() != "": 
-                    u.password_hash = bcrypt.generate_password_hash(new_pw).decode('utf-8')
-                flash(_('User account updated successfully.'), 'success')
-                
-        elif action == 'delete':
-            user_id = request.form.get('user_id')
-            u = User.query.get(user_id)
-            if u and u.username != 'admin':
-                db.session.delete(u)
-                flash(_('User account permanently deleted.'), 'warning')
-
-        db.session.commit()
-        return redirect(url_for('manage_users'))
-        
-    return render_template('users.html', users=User.query.all())
-
-# ==========================================
-# EXPORTS & AUTH
-# ==========================================
-
-@app.route('/export/excel')
-@login_required
-def export_excel():
-    sales = Sale.query.order_by(Sale.timestamp.desc()).all()
-    data = []
-    
-    for s in sales:
-        items_list = ", ".join([f"{i.product_name} (x{i.quantity})" for i in s.items])
-        cogs = sum(i.purchase_cost * i.quantity for i in s.items)
-        profit = s.total_amount - cogs
-        
-        data.append({
-            'Invoice Ref': f"#{s.id}",
-            'Date & Time': s.timestamp.strftime('%Y-%m-%d %H:%M'),
-            'Customer Name': s.customer.name if s.customer else 'Walk-in',
-            'Customer Phone': s.customer.phone if s.customer else '',
-            'Items Purchased': items_list,
-            'Total Invoice Amount (MMK)': float(s.total_amount),
-            'Amount Paid (MMK)': float(s.amount_paid),
-            'Balance Due (MMK)': float(s.total_amount - s.amount_paid),
-            'Payment Method': s.payment_method.upper(),
-            'Status': 'Fully Paid' if s.amount_paid >= s.total_amount else 'Debt/Credit',
-            'Cost of Goods (MMK)': float(cogs),
-            'Net Profit (MMK)': float(profit)
-        })
-    
-    df = pd.DataFrame(data)
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Master Sales Ledger')
-    
-    output.seek(0)
-    return send_file(output, download_name=f"Standard_Sales_Report_{get_mmt_time().strftime('%Y-%m-%d')}.xlsx", as_attachment=True)
-
-
-@app.route('/export/customers_excel')
-@login_required
-def export_customers_excel():
-    customers = Customer.query.all()
-    data = []
-    
-    for c in customers:
-        if c.balance > 0:
-            status = "Owes Store (Debt)"
-        elif c.balance < 0:
-            status = "Store Credit"
-        else:
-            status = "Settled"
-            
-        last_activity = "No History"
-        if c.sales:
-            last_sale = sorted(c.sales, key=lambda x: x.timestamp, reverse=True)[0]
-            last_activity = last_sale.timestamp.strftime('%Y-%m-%d %H:%M:%S')
-
-        data.append({
-            'Client ID': f"#{c.id}",
-            'Client Name': c.name,
-            'Phone Number': c.phone,
-            'Current Balance (MMK)': float(abs(c.balance)),
-            'Financial Status': status,
-            'Last Transaction / Settlement Date': last_activity
-        })
-    
-    df = pd.DataFrame(data)
-    output = io.BytesIO()
-    
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Client_Ledger_Report')
-        worksheet = writer.sheets['Client_Ledger_Report']
-        
-        for col in worksheet.columns:
-            max_length = 0
-            column = col[0].column_letter 
-            for cell in col:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = (max_length + 2)
-            worksheet.column_dimensions[column].width = adjusted_width
-
-    output.seek(0)
-    filename = f"Client_Financial_Report_{get_mmt_time().strftime('%Y-%m-%d')}.xlsx"
-    return send_file(output, download_name=filename, as_attachment=True)
-
-@app.route('/export/pdf')
-@login_required
-def export_pdf():
-    buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    p.drawString(100, 750, f"Official Sales Report - {get_mmt_time().strftime('%Y-%m-%d')}")
-    y = 700
-    p.drawString(100, y, "ID | Date | Total Due | Paid | Payment Method")
-    y -= 20
-    for sale in Sale.query.order_by(Sale.timestamp.desc()).limit(40).all():
-        p.drawString(100, y, f"#{sale.id} | {sale.timestamp.strftime('%Y-%m-%d')} | {sale.total_amount} MMK | {sale.amount_paid} MMK | {sale.payment_method.upper()}")
-        y -= 20
-        if y < 50:
-            p.showPage()
-            y = 750
-    p.save()
-    buffer.seek(0)
-    return send_file(buffer, download_name="Sales_Report.pdf", as_attachment=True)
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        user = User.query.filter_by(username=request.form.get('username')).first()
-        if user and bcrypt.check_password_hash(user.password_hash, request.form.get('password')):
-            login_user(user)
-            return redirect(url_for('dashboard'))
-    return render_template('login.html')
-
-@app.route('/logout')
-def logout():
-    logout_user()
-    return redirect(url_for('login'))
-
-@app.route('/set_language/<language>')
-def set_language(language):
-    session['lang'] = language
-    return redirect(request.referrer or url_for('dashboard'))
-
-@app.template_filter('abs')
-def abs_filter(value):
-    return abs(value)
-
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        
-        admin_user = User.query.filter_by(username='admin').first()
-        if not admin_user:
-            hashed_pw = bcrypt.generate_password_hash('admin123').decode('utf-8')
-            new_admin = User(username='admin', password_hash=hashed_pw, role='admin')
-            db.session.add(new_admin)
-            print("=========================================")
-            print("🚨 DEFAULT ADMIN CREATED 🚨")
-            print("Username: admin")
-            print("Password: admin123")
-            print("Please login and change this immediately!")
-            print("=========================================")
-            
-        company_profile = Company.query.first()
-        if not company_profile:
-            new_company = Company(name="My Boutique Setup", phone="Update in Settings", address="Update in Settings")
-            db.session.add(new_company)
-            print("Blank Company Profile created.")
-
-        db.session.commit()
-        
-        app.run(host='0.0.0.0', port=5000,  debug=True)
+    rows.forEach(row => {
+        const rowStatus = row.getAttribute('data-status');
+        row.style.display = (filterValue === 'all' || rowStatus === filterValue) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}
