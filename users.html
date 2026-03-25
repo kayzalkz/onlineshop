@@ -8,6 +8,7 @@
             <div class="card-body p-4">
                 <h5 class="fw-bold mb-4"><i class="fas fa-user-plus text-primary me-2"></i>New Staff Account</h5>
                 <form action="{{ url_for('manage_users') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" name="action" value="create">
                     <div class="mb-3">
                         <label class="form-label text-muted small fw-bold text-uppercase">Username</label>
@@ -66,6 +67,7 @@
                                         </button>
                                         
                                         <form action="{{ url_for('manage_users') }}" method="POST" onsubmit="return confirm('Permanently delete this user?');" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="user_id" value="{{ u.id }}">
                                             <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
@@ -84,6 +86,7 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <form action="{{ url_for('manage_users') }}" method="POST">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                             <input type="hidden" name="action" value="edit">
                                             <input type="hidden" name="user_id" value="{{ u.id }}">
                                             
