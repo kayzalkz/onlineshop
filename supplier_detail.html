@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block page_title %}Supplier Ledger: {{ supplier.name }}{% endblock %}
+
+{% block content %}
+<style>
+    .statement-container { background: white; border-radius: 12px; padding: 50px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); font-family: 'Inter', sans-serif; border: 1px solid #e2e8f0; }
+    .stmt-header { display: flex; justify-content: space-between; border-bottom: 3px solid #10b981; padding-bottom: 20px; margin-bottom: 40px; }
+    .company-info h2 { font-weight: 800; color: #1e293b; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+    .stmt-title { text-align: right; }
+    .stmt-title h1 { font-weight: 900; color: #10b981; margin: 0; font-size: 2.8rem; letter-spacing: -1px; }
+
+    .ledger-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    .ledger-table th { background: #f8fafc; color: #475569; text-transform: uppercase; font-size: 10px; font-weight: 800; padding: 15px; border-bottom: 2px solid #e2e8f0; letter-spacing: 1px; }
+    .ledger-table td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #334155; }
+    .num { text-align: right; font-family: 'JetBrains Mono', 'Courier New', monospace; font-weight: 600; }
+    
+    .summary-box { background: #10b981; color: white; border-radius: 12px; padding: 25px; margin-top: 40px; display: flex; justify-content: flex-end; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
+    .summary-item { text-align: right; margin-left: 50px; }
+    .summary-item label { display: block; font-size: 10px; color: rgba(255,255,255,0.7); font-weight: 700; text-transform: uppercase; margin-bottom: 5px; }
+    .summary-item span { font-size: 1.4rem; font-weight: 800; }
+
+    @media print {
+        @page { size: A4; margin: 0mm; }
+        body { margin: 0; padding: 0; background: white; visibility: hidden; }
+        .printable-area { visibility: visible; position: absolute; left: 0; top: 0; width: 100%; padding: 20mm !important; box-shadow: none !important; border: none !important; }
+        .printable-area * { visibility: visible; }
+        .stmt-header { border-bottom: 3px solid #10b981 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .summary-box { background: #10b981 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: white !important; }
+        .no-print { display: none !important; }
+    }
+</style>
+
+<div class="no-print d-flex justify-content-between align-items-center mb-4">
+    <a href="{{ url_for('suppliers') }}" class="btn btn-light border fw-bold px-4 rounded-pill shadow-sm"><i class="fas fa-arrow-left me-2"></i>Back to Suppliers</a>
+    <button onclick="window.print()" class="btn btn-dark fw-bold px-4 rounded-pill shadow"><i class="fas fa-print me-2"></i>Print Ledger</button>
+</div>
+
+<div class="statement-container printable-area">
+    <div class="stmt-header">
+        <div class="company-info">
+            <h2>{{ company.name }}</h2>
+            <p class="text-muted small mb-0">{{ company.address }}<br>Phone: {{ company.phone }}</p>
+        </div>
+        <div class="stmt-title">
+            <h1>LEDGER</h1>
+            <p class="text-muted fw-bold mb-0">Issued: {{ now.strftime('%d %b, %Y') if now else '' }}</p>
+        </div>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col-7">
+            <label class="text-muted small fw-bold text-uppercase d-block mb-1">Supplier / Vendor:</label>
+            <h4 class="fw-bold mb-0 text-dark">{{ supplier.name }}</h4>
+            <p class="text-muted fs-6 mb-0">{{ supplier.contact_person or '' }} | {{ supplier.phone or '' }}</p>
+        </div>
+        <div class="col-5 text-end">
+            <label class="text-muted small fw-bold text-uppercase d-block mb-1">Account Summary:</label>
+            <div class="badge bg-light text-dark border p-2 px-3 rounded-pill fw-bold">ID: #SUP-{{ "{:04d}".format(supplier.id) }}</div>
+        </div>
+    </div>
+
+    <table class="ledger-table">
+        <thead>
+            <tr>
+                <th style="width: 12%;">Date</th>
+                <th style="width: 15%;">Reference</th>
+                <th>Transaction Details</th>
+                <th class="num" style="width: 15%;">Purchase (+)</th>
+                <th class="num" style="width: 15%;">Payment (-)</th>
+                <th class="num" style="width: 15%;">Balance</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in history %}
+            <tr>
+                <td class="text-muted">{{ row.date.strftime('%d %b %y') }}</td>
+                <td class="fw-bold text-dark">{{ row.ref }}</td>
+                <td class="small">{{ row.desc }}</td>
+                <td class="num">{{ "{:,.0f}".format(row.debit) if row.debit > 0 else '-' }}</td>
+                <td class="num text-success">{{ "{:,.0f}".format(row.credit) if row.credit > 0 else '-' }}</td>
+                <td class="num text-danger">
+                    {{ "{:,.0f}".format(row.running_bal) }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="summary-box">
+        <div class="summary-item">
+            <label>Total Value Ordered</label>
+            <span>{{ "{:,.0f}".format(total_ordered) }}</span>
+        </div>
+        <div class="summary-item">
+            <label>Current Account Payable</label>
+            <span>{{ "{:,.0f}".format(supplier.balance) }} MMK</span>
+        </div>
+    </div>
+    
+    <div class="mt-5 pt-4 text-center border-top no-print-visible">
+        <p class="small text-muted mb-1">Accounts Payable Ledger</p>
+        <p style="font-size: 10px;" class="text-uppercase fw-bold text-muted">Generated by KZL Boutique Management System.</p>
+    </div>
+</div>
+{% endblock %}
