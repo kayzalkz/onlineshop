@@ -3,241 +3,181 @@
 
 {% block content %}
 <style>
-    /* --- ENTERPRISE REPORTING STYLES --- */
     .erp-tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.5rem; gap: 1rem; scrollbar-width: none; }
     .erp-tabs::-webkit-scrollbar { display: none; }
-    .erp-tabs .nav-link { color: #64748b; font-weight: 600; border: none; padding: 10px 5px; background: transparent; position: relative; white-space: nowrap; transition: color 0.2s; }
-    .erp-tabs .nav-link:hover { color: #0f172a; }
-    .erp-tabs .nav-link.active { color: #4f46e5; }
-    .erp-tabs .nav-link.active::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px; background-color: #4f46e5; border-radius: 2px 2px 0 0; }
-
-    .erp-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-    .erp-table th { background: #f8fafc; color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
-    .erp-table td { padding: 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; font-size: 14px; color: #334155; }
-    .erp-table tbody tr:hover { background-color: #f8fafc; }
-    
-    /* Accounting Alignments */
-    .num-col { text-align: right; font-variant-numeric: tabular-nums; }
-    
-    /* Soft Badges */
-    .badge-soft-success { background: #dcfce7; color: #166534; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-size: 11px; }
-    .badge-soft-danger { background: #fee2e2; color: #991b1b; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-size: 11px; }
-    .badge-soft-warning { background: #fef9c3; color: #854d0e; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-size: 11px; }
-    
-    .filter-bar { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 20px; }
-    .action-icon { color: #94a3b8; transition: 0.2s; background: transparent; border: none; padding: 5px; }
-    .action-icon:hover { color: #4f46e5; transform: scale(1.1); }
-    .action-icon.danger:hover { color: #ef4444; }
+    .erp-tab { padding: 0.75rem 1.5rem; color: #64748b; font-weight: 600; text-decoration: none; border-bottom: 3px solid transparent; white-space: nowrap; transition: all 0.2s; cursor: pointer; }
+    .erp-tab:hover { color: #0f172a; }
+    .erp-tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
 </style>
 
-<ul class="nav erp-tabs" id="reportTabs" role="tablist">
-    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overview" type="button">Master Ledger</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#clientReport" type="button">Accounts Receivable</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#supplierReport" type="button">Accounts Payable</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#pl" type="button">Profit & Loss (P&L)</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#stock" type="button">Inventory Valuation</button></li>
-</ul>
-
-<div class="tab-content" id="reportTabsContent">
-
-    <div class="tab-pane fade show active" id="overview" role="tabpanel">
-        
-        <div class="row g-3 mb-4">
-            <div class="col-6 col-lg-3">
-                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-primary border-4">
-                    <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Today's Revenue</p>
-                    <h4 class="fw-bold text-dark mb-0">{{ "{:,.0f}".format(daily_rev) }} <span class="fs-6 text-muted fw-normal">MMK</span></h4>
-                </div>
-            </div>
-            <div class="col-6 col-lg-3">
-                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-success border-4">
-                    <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Cash Drawer</p>
-                    <h4 class="fw-bold text-success mb-0">{{ "{:,.0f}".format(cash_total) }} <span class="fs-6 text-success opacity-75 fw-normal">MMK</span></h4>
-                </div>
-            </div>
-            <div class="col-6 col-lg-3">
-                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-info border-4">
-                    <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Digital Paid</p>
-                    <h4 class="fw-bold text-info mb-0">{{ "{:,.0f}".format(digital_total) }} <span class="fs-6 text-info opacity-75 fw-normal">MMK</span></h4>
-                </div>
-            </div>
-            <div class="col-6 col-lg-3">
-                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-danger border-4">
-                    <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Unpaid Credit</p>
-                    <h4 class="fw-bold text-danger mb-0">{{ "{:,.0f}".format(credit_total) }} <span class="fs-6 text-danger opacity-75 fw-normal">MMK</span></h4>
-                </div>
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 bg-white h-100 border-start border-4 border-primary">
+            <div class="card-body p-3">
+                <p class="text-muted small text-uppercase fw-bold mb-1">Today's Revenue</p>
+                <h4 class="fw-bold text-dark mb-0">{{ "{:,.0f}".format(daily_rev) }} <span class="fs-6 text-muted">MMK</span></h4>
             </div>
         </div>
-
-        <div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden mb-4">
-            <div class="filter-bar m-3 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="fas fa-filter text-muted"></i>
-                    <select class="form-select form-select-sm border-0 bg-white fw-bold shadow-sm" style="width: 150px;" id="dateFilter" onchange="toggleCustomDate()">
-                        <option value="all">All Time</option>
-                        <option value="daily">Today</option>
-                        <option value="weekly">This Week</option>
-                        <option value="monthly">This Month</option>
-                        <option value="custom">Custom Date...</option>
-                    </select>
-                    <div id="customDateRange" class="d-none align-items-center gap-2">
-                        <input type="date" id="startDate" class="form-control form-control-sm border-0 shadow-sm" onchange="filterTableByDate()">
-                        <span class="text-muted small fw-bold">to</span>
-                        <input type="date" id="endDate" class="form-control form-control-sm border-0 shadow-sm" onchange="filterTableByDate()">
-                    </div>
-                </div>
-                <div class="d-flex gap-2">
-                    <a href="{{ url_for('export_excel') }}" class="btn btn-sm btn-outline-success fw-bold px-3"><i class="fas fa-file-excel me-1"></i> CSV / Excel</a>
-                    <a href="{{ url_for('export_pdf') }}" class="btn btn-sm btn-outline-danger fw-bold px-3"><i class="fas fa-file-pdf me-1"></i> Print PDF</a>
-                </div>
+    </div>
+    <div class="col-12 col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 bg-white h-100 border-start border-4 border-success">
+            <div class="card-body p-3">
+                <p class="text-muted small text-uppercase fw-bold mb-1">Cash Drawer</p>
+                <h4 class="fw-bold text-dark mb-0">{{ "{:,.0f}".format(cash_total) }} <span class="fs-6 text-muted">MMK</span></h4>
             </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 bg-white h-100 border-start border-4 border-info">
+            <div class="card-body p-3">
+                <p class="text-muted small text-uppercase fw-bold mb-1">Digital Paid</p>
+                <h4 class="fw-bold text-dark mb-0">{{ "{:,.0f}".format(digital_total) }} <span class="fs-6 text-muted">MMK</span></h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 bg-white h-100 border-start border-4 border-danger">
+            <div class="card-body p-3">
+                <p class="text-muted small text-uppercase fw-bold mb-1">Unpaid Credit</p>
+                <h4 class="fw-bold text-dark mb-0">{{ "{:,.0f}".format(credit_total) }} <span class="fs-6 text-muted">MMK</span></h4>
+            </div>
+        </div>
+    </div>
+</div>
 
-            <div class="table-responsive">
-                <table class="table erp-table mb-0" style="min-width: 1000px;">
-                    <thead>
-                        <tr>
-                            <th>Ref #</th>
-                            <th>Date & Time</th>
-                            <th>Client / Customer</th>
-                            <th>Method</th>
-                            <th class="text-end">Amount Details</th>
-                            <th class="text-center">Status</th>
-                            <th class="text-center"><i class="fas fa-cog"></i></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for sale in all_sales %}
-                        <tr class="sale-row" data-date="{{ sale.timestamp.strftime('%Y-%m-%d') }}">
-                            <td class="fw-bold text-muted small">#{{ sale.id }}</td>
-                            <td class="small">{{ sale.timestamp.strftime('%d %b, %Y %H:%M') }}</td>
-                            <td class="fw-bold">{{ sale.customer.name if sale.customer else 'Walk-in Customer' }}</td>
-                            <td><span class="text-uppercase small fw-bold text-muted">{{ sale.payment_method }}</span></td>
-                            
-                            <td class="text-end">
-                                <div class="fw-bold text-dark">{{ "{:,.0f}".format(sale.total_amount) }} MMK</div>
-                                <small class="text-muted d-block" style="font-size: 11px;">PAID: {{ "{:,.0f}".format(sale.amount_paid) }} MMK</small>
-                                {% if sale.amount_paid > sale.total_amount %}
-                                    <small class="text-success fw-bold d-block" style="font-size: 11px;">CHANGE: {{ "{:,.0f}".format(sale.amount_paid - sale.total_amount) }} MMK</small>
-                                {% endif %}
-                            </td>
+<div class="erp-tabs" id="reportTabs" role="tablist">
+    <div class="erp-tab active" data-bs-toggle="tab" data-bs-target="#master" role="tab">Master Ledger</div>
+    <div class="erp-tab" data-bs-toggle="tab" data-bs-target="#ar" role="tab">Accounts Receivable</div>
+    <div class="erp-tab" data-bs-toggle="tab" data-bs-target="#ap" role="tab">Accounts Payable</div>
+    <div class="erp-tab" data-bs-toggle="tab" data-bs-target="#pl" role="tab">Profit & Loss (P&L)</div>
+    <div class="erp-tab" data-bs-toggle="tab" data-bs-target="#inventory" role="tab">Inventory Valuation</div>
+</div>
 
-                            <td class="text-center">
-                                {% if sale.amount_paid >= sale.total_amount %}
-                                    <span class="badge-soft-success">PAID</span>
-                                {% else %}
-                                    <span class="badge-soft-danger">DEBT</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-end text-nowrap">
-                                    <a href="{{ url_for('receipt', sale_id=sale.id) }}" target="_blank" class="btn btn-sm btn-outline-primary shadow-sm" title="Print Receipt">
-                                        <i class="fas fa-print"></i>
-                                    </a>
+<div class="tab-content" id="reportTabContent">
+    
+    <div class="tab-pane fade show active" id="master" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold m-0">All Sales Transactions</h5>
+                    
+                    <button class="btn btn-dark fw-bold px-4 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#exportModal">
+                        <i class="fas fa-file-export me-2"></i>Export Ledger
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="small text-muted text-uppercase fw-bold">Date & Time</th>
+                                <th class="small text-muted text-uppercase fw-bold">Invoice Ref</th>
+                                <th class="small text-muted text-uppercase fw-bold">Customer</th>
+                                <th class="small text-muted text-uppercase fw-bold">Items Sold</th>
+                                <th class="text-end small text-muted text-uppercase fw-bold">Total</th>
+                                <th class="text-end small text-muted text-uppercase fw-bold">Paid</th>
+                                <th class="text-end small text-muted text-uppercase fw-bold">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in all_sales %}
+                            <tr>
+                                <td class="text-muted small">{{ sale.timestamp.strftime('%d %b %Y, %H:%M') }}</td>
+                                <td class="fw-bold">#{{ sale.id }}</td>
+                                <td>{{ sale.customer.name if sale.customer else 'Walk-in' }}</td>
+                                <td class="small" style="max-width: 250px;">
+                                    {% for item in sale.items %}
+                                        <div class="text-truncate" title="{{ item.product_name }}">{{ item.quantity }}x {{ item.product_name }}</div>
+                                    {% endfor %}
+                                </td>
+                                <td class="text-end fw-bold">{{ "{:,.0f}".format(sale.total_amount) }}</td>
+                                <td class="text-end text-success fw-bold">{{ "{:,.0f}".format(sale.amount_paid) }}</td>
+                                <td class="text-end text-nowrap">
+                                    <a href="{{ url_for('receipt', sale_id=sale.id) }}" target="_blank" class="btn btn-sm btn-outline-primary shadow-sm" title="Print Receipt"><i class="fas fa-print"></i></a>
                                     
                                     {% if current_user.is_admin %}
                                     <form action="{{ url_for('edit_sale', sale_id=sale.id) }}" method="POST" class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-outline-warning shadow-sm" title="Edit Sale">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
+                                        <button type="submit" class="btn btn-sm btn-outline-warning shadow-sm" title="Edit Sale"><i class="fas fa-edit"></i></button>
                                     </form>
-                                    
                                     <form action="{{ url_for('delete_sale', sale_id=sale.id) }}" method="POST" class="d-inline" onsubmit="return confirm('WARNING: Permanently void this transaction and restore stock?');">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm" title="Void Sale">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm" title="Void Sale"><i class="fas fa-trash"></i></button>
                                     </form>
                                     {% endif %}
                                 </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="7" class="text-center py-4 text-muted">No transactions found.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="tab-pane fade" id="clientReport" role="tabpanel">
-        <div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden">
-            <div class="filter-bar m-3 d-flex justify-content-between align-items-center">
-                <select id="customerStatusFilter" class="form-select form-select-sm border-0 shadow-sm fw-bold w-auto" onchange="filterCustomers()">
-                    <option value="all">All Clients</option>
-                    <option value="debt">Owes Store (Receivable)</option>
-                    <option value="credit">Store Credit (Liability)</option>
-                    <option value="settled">Settled (Zero Balance)</option>
-                </select>
-                <a href="{{ url_for('export_customers_excel') }}" class="btn btn-sm btn-outline-success fw-bold px-3"><i class="fas fa-file-excel me-1"></i> Export</a>
+    <div class="tab-pane fade" id="ar" role="tabpanel">
+        <div class="row g-4">
+            <div class="col-12 col-lg-8">
+                <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold m-0 text-danger"><i class="fas fa-hand-holding-usd me-2"></i>Accounts Receivable (Debt)</h5>
+                        <a href="{{ url_for('export_customers_excel') }}" class="btn btn-sm btn-outline-danger fw-bold rounded-pill"><i class="fas fa-file-excel me-1"></i> Export</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="small text-muted text-uppercase fw-bold">Client Name</th>
+                                    <th class="small text-muted text-uppercase fw-bold">Phone</th>
+                                    <th class="text-end small text-muted text-uppercase fw-bold">Amount Owed (MMK)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in customers %}
+                                    {% if c.balance > 0 %}
+                                    <tr>
+                                        <td class="fw-bold">{{ c.name }}</td>
+                                        <td class="text-muted">{{ c.phone }}</td>
+                                        <td class="text-end text-danger fw-bold fs-6">{{ "{:,.0f}".format(c.balance) }}</td>
+                                    </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-
-            <div class="table-responsive">
-                <table class="table erp-table mb-0" style="min-width: 800px;">
-                    <thead>
-                        <tr>
-                            <th>Client Name</th>
-                            <th>Contact Info</th>
-                            <th>Last Activity</th>
-                            <th class="text-center">Account Status</th>
-                            <th class="num-col">Current Balance (MMK)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for c in customers %}
-                        {% set status = 'settled' %}
-                        {% if c.balance > 0 %}{% set status = 'debt' %}{% elif c.balance < 0 %}{% set status = 'credit' %}{% endif %}
-                        
-                        <tr class="customer-row" data-status="{{ status }}">
-                            <td class="fw-bold">
-                                <a href="{{ url_for('customer_detail', customer_id=c.id) }}" class="text-decoration-none text-primary" title="View Full Profile">
-                                    {{ c.name }}
-                                </a>
-                                <br><span class="small text-muted fw-normal">ID: #{{ c.id }}</span>
-                            </td>
-                            <td>{{ c.phone }}</td>
-                            <td class="small text-muted">{% if c.sales %}{{ (c.sales|sort(attribute='timestamp', reverse=True)|first).timestamp.strftime('%d %b, %Y') }}{% else %}--{% endif %}</td>
-                            <td class="text-center">
-                                {% if c.balance > 0 %}<span class="badge-soft-danger">OWES STORE</span>
-                                {% elif c.balance < 0 %}<span class="badge-soft-warning">STORE CREDIT</span>
-                                {% else %}<span class="badge-soft-success">SETTLED</span>{% endif %}
-                            </td>
-                            <td class="num-col fw-bold fs-6 {% if c.balance > 0 %}text-danger{% elif c.balance < 0 %}text-success{% endif %}">
-                                {{ "{:,.0f}".format(c.balance|abs) }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="col-12 col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 bg-danger text-white h-100 p-4 text-center d-flex justify-content-center">
+                    <p class="text-uppercase fw-bold mb-2 opacity-75">Total Outstanding Debt</p>
+                    <h2 class="fw-bold mb-0 display-5">{{ "{:,.0f}".format(credit_total) }}</h2>
+                    <p class="mb-0 mt-1 opacity-75">MMK</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="tab-pane fade" id="supplierReport" role="tabpanel">
-        <div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden">
-            <div class="p-4 border-bottom bg-light">
-                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-truck text-muted me-2"></i>Accounts Payable Ledger</h6>
-            </div>
+    <div class="tab-pane fade" id="ap" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-4">
+            <h5 class="fw-bold mb-4 text-warning"><i class="fas fa-file-invoice-dollar me-2"></i>Accounts Payable (To Suppliers)</h5>
             <div class="table-responsive">
-                <table class="table erp-table mb-0" style="min-width: 800px;">
-                    <thead>
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
                         <tr>
-                            <th>Supplier / Vendor</th>
-                            <th>Contact Person</th>
-                            <th>Phone</th>
-                            <th class="text-center">Status</th>
-                            <th class="num-col">Total Owed (MMK)</th>
+                            <th class="small text-muted text-uppercase fw-bold">Supplier Name</th>
+                            <th class="small text-muted text-uppercase fw-bold">Contact</th>
+                            <th class="text-end small text-muted text-uppercase fw-bold">Amount Due (MMK)</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for s in suppliers %}
-                        <tr>
-                            <td class="fw-bold">{{ s.name }}</td>
-                            <td>{{ s.contact_person or '--' }}</td>
-                            <td>{{ s.phone or '--' }}</td>
-                            <td class="text-center">
-                                {% if s.balance > 0 %}<span class="badge-soft-danger">PENDING PAYMENT</span>
-                                {% else %}<span class="badge-soft-success">CLEARED</span>{% endif %}
-                            </td>
-                            <td class="num-col fw-bold fs-6 {% if s.balance > 0 %}text-danger{% endif %}">
-                                {{ "{:,.0f}".format(s.balance) }}
-                            </td>
-                        </tr>
+                            {% if s.balance > 0 %}
+                            <tr>
+                                <td class="fw-bold"><a href="{{ url_for('supplier_detail', supplier_id=s.id) }}">{{ s.name }}</a></td>
+                                <td class="text-muted">{{ s.phone }}</td>
+                                <td class="text-end text-warning text-dark fw-bold fs-6">{{ "{:,.0f}".format(s.balance) }}</td>
+                            </tr>
+                            {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>
@@ -247,7 +187,6 @@
 
     <div class="tab-pane fade" id="pl" role="tabpanel">
         <div class="row g-4">
-            
             <div class="col-12 col-lg-7">
                 <div class="card border-0 shadow-sm rounded-4 bg-white p-5 h-100">
                     <div class="text-center mb-5">
@@ -274,9 +213,9 @@
                         <span class="fw-bold text-danger">- {{ "{:,.0f}".format(total_expenses) }}</span>
                     </div>
                     
-                    <div class="d-flex justify-content-between bg-dark text-white rounded-4 mt-4 p-4 shadow">
-                        <h3 class="fw-bold mb-0 text-white" style="letter-spacing: 1px;">NET PROFIT</h3>
-                        <h3 class="fw-bold mb-0" style="color: #34d399;">{{ "{:,.0f}".format(net_profit) }} MMK</h3>
+                    <div class="d-flex justify-content-between rounded-4 mt-4 p-4 shadow-sm" style="background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0;">
+                        <h3 class="fw-bold mb-0 text-uppercase" style="letter-spacing: 0.5px;">Net Profit</h3>
+                        <h3 class="fw-bold mb-0">{{ "{:,.0f}".format(net_profit) }} MMK</h3>
                     </div>
                 </div>
             </div>
@@ -336,99 +275,112 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 
-    <div class="tab-pane fade" id="stock" role="tabpanel">
-        <div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden">
-             <div class="p-4 border-bottom bg-light">
-                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-boxes text-muted me-2"></i>Asset Valuation</h6>
-            </div>
+    <div class="tab-pane fade" id="inventory" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+            <h5 class="fw-bold mb-4 text-primary"><i class="fas fa-boxes me-2"></i>Current Stock Value</h5>
             <div class="table-responsive">
-                <table class="table erp-table mb-0" style="min-width: 800px;">
-                    <thead>
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
                         <tr>
-                            <th>SKU / Product Name</th>
-                            <th>Category</th>
-                            <th class="num-col">Qty on Hand</th>
-                            <th class="num-col">Total Asset Cost (COGS)</th>
-                            <th class="num-col">Potential Revenue</th>
+                            <th class="small text-muted text-uppercase fw-bold">Item Name</th>
+                            <th class="text-center small text-muted text-uppercase fw-bold">Stock Qty</th>
+                            <th class="text-end small text-muted text-uppercase fw-bold">Est. Cost Value</th>
+                            <th class="text-end small text-muted text-uppercase fw-bold">Potential Revenue</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for p in products %}
-                        <tr>
-                            <td class="fw-bold">{{ p.name }} <span class="badge bg-light text-muted ms-2">{{ p.size }}</span></td>
-                            <td>{{ p.category }}</td>
-                            <td class="num-col fw-bold {% if p.stock <= 5 %}text-danger{% endif %}">{{ p.stock }}</td>
-                            <td class="num-col text-muted">{{ "{:,.0f}".format(p.stock * p.purchase_price) }}</td>
-                            <td class="num-col text-success fw-bold">{{ "{:,.0f}".format(p.stock * p.selling_price) }}</td>
-                        </tr>
+                            {% if p.stock > 0 %}
+                            <tr>
+                                <td class="fw-bold">{{ p.name }} <span class="badge bg-light text-dark ms-1">{{ p.size }}</span></td>
+                                <td class="text-center fw-bold text-primary">{{ p.stock }}</td>
+                                <td class="text-end text-muted">{{ "{:,.0f}".format(p.purchase_price * p.stock) }}</td>
+                                <td class="text-end text-success fw-bold">{{ "{:,.0f}".format(p.selling_price * p.stock) }}</td>
+                            </tr>
+                            {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+</div>
 
+<div class="modal fade" id="exportModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header border-bottom-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold">Export Master Ledger</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4">
+                <div class="mb-4">
+                    <label class="form-label text-muted small fw-bold text-uppercase">Select Time Frame</label>
+                    <select class="form-select bg-light border-0 py-2 fw-bold" id="exportTimeFrame" onchange="toggleCustomDates()">
+                        <option value="today">Today</option>
+                        <option value="week">This Week (Last 7 Days)</option>
+                        <option value="month">This Month</option>
+                        <option value="all" selected>All Time</option>
+                        <option value="custom">Custom Date Range</option>
+                    </select>
+                </div>
+                
+                <div class="row g-2 mb-4 d-none" id="customDateBox">
+                    <div class="col-6">
+                        <label class="form-label text-muted small fw-bold text-uppercase">Start Date</label>
+                        <input type="date" class="form-control bg-light border-0 py-2" id="exportStart">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted small fw-bold text-uppercase">End Date</label>
+                        <input type="date" class="form-control bg-light border-0 py-2" id="exportEnd">
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-success w-50 fw-bold py-2 shadow-sm" onclick="triggerExport('excel')">
+                        <i class="fas fa-file-excel me-2"></i>Excel
+                    </button>
+                    <button type="button" class="btn btn-danger w-50 fw-bold py-2 shadow-sm" onclick="triggerExport('pdf')">
+                        <i class="fas fa-file-pdf me-2"></i>PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-// Enterprise Date Filtering Script
-function toggleCustomDate() {
-    const filter = document.getElementById('dateFilter').value;
-    const customDiv = document.getElementById('customDateRange');
-    if (filter === 'custom') {
-        customDiv.classList.remove('d-none');
-        customDiv.classList.add('d-flex');
-    } else {
-        customDiv.classList.add('d-none');
-        customDiv.classList.remove('d-flex');
-        filterTableByDate(); 
+    function toggleCustomDates() {
+        const timeFrame = document.getElementById('exportTimeFrame').value;
+        const customBox = document.getElementById('customDateBox');
+        if (timeFrame === 'custom') {
+            customBox.classList.remove('d-none');
+        } else {
+            customBox.classList.add('d-none');
+        }
     }
-}
 
-function filterTableByDate() {
-    const filter = document.getElementById('dateFilter').value;
-    const rows = document.getElementsByClassName('sale-row');
-    const today = new Date();
-    const offset = today.getTimezoneOffset() * 60000;
-    const localToday = new Date(today.getTime() - offset);
-    const todayString = localToday.toISOString().split('T')[0];
-    
-    const firstDayOfWeek = new Date(localToday);
-    firstDayOfWeek.setDate(localToday.getDate() - localToday.getDay());
-    const firstDayString = firstDayOfWeek.toISOString().split('T')[0];
-    
-    const currentMonth = localToday.getMonth();
-    const currentYear = localToday.getFullYear();
-    const startInput = document.getElementById('startDate').value;
-    const endInput = document.getElementById('endDate').value;
-
-    for (let row of rows) {
-        let rowDateStr = row.getAttribute('data-date');
-        let rowDateObj = new Date(rowDateStr + 'T12:00:00Z'); 
-        let showRow = true;
-
-        if (filter === 'daily') { showRow = (rowDateStr === todayString); } 
-        else if (filter === 'weekly') { showRow = (rowDateStr >= firstDayString); } 
-        else if (filter === 'monthly') { showRow = (rowDateObj.getUTCMonth() === currentMonth && rowDateObj.getUTCFullYear() === currentYear); } 
-        else if (filter === 'custom' && startInput && endInput) { showRow = (rowDateStr >= startInput && rowDateStr <= endInput); }
+    function triggerExport(type) {
+        const timeFrame = document.getElementById('exportTimeFrame').value;
+        let url = type === 'excel' ? "{{ url_for('export_excel') }}" : "{{ url_for('export_pdf') }}";
         
-        row.style.display = showRow ? "" : "none";
+        url += `?time_frame=${timeFrame}`;
+        
+        if (timeFrame === 'custom') {
+            const start = document.getElementById('exportStart').value;
+            const end = document.getElementById('exportEnd').value;
+            if (!start || !end) {
+                alert("Please select both a start and end date.");
+                return;
+            }
+            url += `&start_date=${start}&end_date=${end}`;
+        }
+        
+        bootstrap.Modal.getInstance(document.getElementById('exportModal')).hide();
+        window.location.href = url;
     }
-}
-
-// AR/AP Status Filter
-function filterCustomers() {
-    const filterValue = document.getElementById('customerStatusFilter').value;
-    const rows = document.querySelectorAll('.customer-row');
-    
-    rows.forEach(row => {
-        const rowStatus = row.getAttribute('data-status');
-        row.style.display = (filterValue === 'all' || rowStatus === filterValue) ? '' : 'none';
-    });
-}
 </script>
 {% endblock %}
