@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block page_title %}Role Permissions Setup{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-12 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-4"><i class="fas fa-shield-alt text-primary me-2"></i>Create New Role</h5>
+                <form action="{{ url_for('manage_roles') }}" method="POST">
+                    <input type="hidden" name="action" value="create">
+                    <div class="mb-4">
+                        <label class="form-label text-muted small fw-bold text-uppercase">Role Name</label>
+                        <input type="text" class="form-control border-0 bg-light py-2" name="name" placeholder="e.g., Accountant" required>
+                    </div>
+                    
+                    <h6 class="fw-bold text-dark mb-3 small text-uppercase">Assign Permissions</h6>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" name="pos_access" id="pos_add">
+                        <label class="form-check-label fw-bold" for="pos_add">POS & Sales (Cashier)</label>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" name="inventory_access" id="inv_add">
+                        <label class="form-check-label fw-bold" for="inv_add">Inventory Management</label>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" name="supplier_access" id="sup_add">
+                        <label class="form-check-label fw-bold" for="sup_add">Suppliers & POs</label>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" name="report_access" id="rep_add">
+                        <label class="form-check-label fw-bold" for="rep_add">Financial Reports (P&L)</label>
+                    </div>
+                    <hr>
+                    <div class="form-check form-switch mb-4">
+                        <input class="form-check-input border-danger" type="checkbox" name="manage_users_access" id="sys_add">
+                        <label class="form-check-label fw-bold text-danger" for="sys_add">System Admin (Full Access)</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">Save Role</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
+            <div class="card-body p-4">
+                <table class="table align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="small text-muted text-uppercase fw-bold">Role Name</th>
+                            <th class="small text-muted text-uppercase fw-bold">Permissions Granted</th>
+                            <th class="text-end small text-muted text-uppercase fw-bold">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in roles %}
+                        <tr>
+                            <td class="fw-bold text-dark">{{ r.name }}</td>
+                            <td>
+                                {% if r.manage_users_access %}<span class="badge bg-danger">Admin</span>{% endif %}
+                                {% if r.pos_access %}<span class="badge bg-success">POS</span>{% endif %}
+                                {% if r.inventory_access %}<span class="badge bg-info">Inventory</span>{% endif %}
+                                {% if r.supplier_access %}<span class="badge bg-warning text-dark">Suppliers</span>{% endif %}
+                                {% if r.report_access %}<span class="badge bg-primary">Reports</span>{% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if r.name != 'System Admin' %}
+                                <form action="{{ url_for('manage_roles') }}" method="POST" onsubmit="return confirm('Delete this role?');" class="d-inline">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="role_id" value="{{ r.id }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
