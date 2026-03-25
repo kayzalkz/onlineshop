@@ -97,9 +97,11 @@
                                     
                                     {% if current_user.is_admin %}
                                     <form action="{{ url_for('edit_sale', sale_id=sale.id) }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                         <button type="submit" class="btn btn-sm btn-outline-warning shadow-sm" title="Edit Sale"><i class="fas fa-edit"></i></button>
                                     </form>
                                     <form action="{{ url_for('delete_sale', sale_id=sale.id) }}" method="POST" class="d-inline" onsubmit="return confirm('WARNING: Permanently void this transaction and restore stock?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                         <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm" title="Void Sale"><i class="fas fa-trash"></i></button>
                                     </form>
                                     {% endif %}
@@ -226,6 +228,7 @@
                     
                     {% if current_user.is_admin %}
                     <form action="{{ url_for('add_expense') }}" method="POST" class="mb-4 pb-4 border-bottom">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="row g-2 mb-3">
                             <div class="col-6">
                                 <label class="small text-muted fw-bold text-uppercase mb-1">Amount (MMK)</label>
