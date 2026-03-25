@@ -100,7 +100,8 @@
                             <th>Date & Time</th>
                             <th>Client / Customer</th>
                             <th>Method</th>
-                            <th class="text-end">Amount Details</th> <th class="text-center">Status</th>
+                            <th class="text-end">Amount Details</th>
+                            <th class="text-center">Status</th>
                             <th class="text-center"><i class="fas fa-cog"></i></th>
                         </tr>
                     </thead>
@@ -171,7 +172,12 @@
                         {% if c.balance > 0 %}{% set status = 'debt' %}{% elif c.balance < 0 %}{% set status = 'credit' %}{% endif %}
                         
                         <tr class="customer-row" data-status="{{ status }}">
-                            <td class="fw-bold">{{ c.name }} <br><span class="small text-muted fw-normal">ID: #{{ c.id }}</span></td>
+                            <td class="fw-bold">
+                                <a href="{{ url_for('customer_detail', customer_id=c.id) }}" class="text-decoration-none text-primary" title="View Full Profile">
+                                    {{ c.name }}
+                                </a>
+                                <br><span class="small text-muted fw-normal">ID: #{{ c.id }}</span>
+                            </td>
                             <td>{{ c.phone }}</td>
                             <td class="small text-muted">{% if c.sales %}{{ (c.sales|sort(attribute='timestamp', reverse=True)|first).timestamp.strftime('%d %b, %Y') }}{% else %}--{% endif %}</td>
                             <td class="text-center">
