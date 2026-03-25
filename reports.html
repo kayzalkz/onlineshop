@@ -1,105 +1,138 @@
 {% extends "base.html" %}
-{% block page_title %}{{ _('Business Analytics') }}{% endblock %}
+{% block page_title %}{{ _('Financial Reports & Ledgers') }}{% endblock %}
 
 {% block content %}
 <style>
-    .ledger-table th { color: #6b7280; font-weight: bold; text-transform: uppercase; font-size: 11px; padding-bottom: 10px; border-bottom: 2px solid #e5e7eb; }
-    .ledger-table td { padding: 12px 10px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
-    .item-bullet { color: #6d28d9; margin-right: 5px; font-size: 10px; }
-    .item-text { font-size: 12px; color: #4b5563; }
-    .pay-kpay { color: #6d28d9; font-weight: bold; font-size: 12px; }
-    .pay-wave { color: #2563eb; font-weight: bold; font-size: 12px; }
-    .pay-cash { color: #059669; font-weight: bold; font-size: 12px; }
-    .status-badge { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
-    .status-debt { background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
-    .action-btn { background: transparent; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 10px; color: #6b7280; cursor: pointer; transition: 0.2s; text-decoration: none; display: inline-block;}
-    .action-btn:hover { background: #f3f4f6; color: #111827; }
-    .action-btn.delete:hover { color: #ef4444; border-color: #ef4444; background: #fef2f2; }
+    /* --- ENTERPRISE REPORTING STYLES --- */
+    .erp-tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.5rem; gap: 1rem; scrollbar-width: none; }
+    .erp-tabs::-webkit-scrollbar { display: none; }
+    .erp-tabs .nav-link { color: #64748b; font-weight: 600; border: none; padding: 10px 5px; background: transparent; position: relative; white-space: nowrap; transition: color 0.2s; }
+    .erp-tabs .nav-link:hover { color: #0f172a; }
+    .erp-tabs .nav-link.active { color: #4f46e5; }
+    .erp-tabs .nav-link.active::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px; background-color: #4f46e5; border-radius: 2px 2px 0 0; }
+
+    .erp-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .erp-table th { background: #f8fafc; color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
+    .erp-table td { padding: 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; font-size: 14px; color: #334155; }
+    .erp-table tbody tr:hover { background-color: #f8fafc; }
     
-    /* Swipeable Tabs for Mobile */
-    .nav-tabs-scrollable { display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; border-bottom: 1px solid #dee2e6; margin-bottom: 1rem;}
-    .nav-tabs-scrollable::-webkit-scrollbar { display: none; }
-    .nav-tabs-scrollable .nav-link { color: #6b7280; font-weight: bold; border: none; padding: 12px 15px; white-space: nowrap; }
-    .nav-tabs-scrollable .nav-link.active { color: #6d28d9; border-bottom: 3px solid #6d28d9; background: transparent; }
+    /* Accounting Alignments */
+    .num-col { text-align: right; font-variant-numeric: tabular-nums; }
+    
+    /* Soft Badges */
+    .badge-soft-success { background: #dcfce7; color: #166534; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-size: 11px; }
+    .badge-soft-danger { background: #fee2e2; color: #991b1b; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-size: 11px; }
+    .badge-soft-warning { background: #fef9c3; color: #854d0e; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-size: 11px; }
+    
+    .filter-bar { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 20px; }
+    .action-icon { color: #94a3b8; transition: 0.2s; background: transparent; border: none; padding: 5px; }
+    .action-icon:hover { color: #4f46e5; transform: scale(1.1); }
+    .action-icon.danger:hover { color: #ef4444; }
 </style>
 
-<ul class="nav nav-tabs-scrollable" id="reportTabs" role="tablist">
-  <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overview" type="button">Overview & Ledger</button></li>
-  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#clientReport" type="button">Client Balances</button></li>
-  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#pl" type="button">Profit & Loss</button></li>
-  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#stock" type="button">Inventory Val.</button></li>
-  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#adjust" type="button">Stock Logs</button></li>
+<ul class="nav erp-tabs" id="reportTabs" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overview" type="button">Master Ledger</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#clientReport" type="button">Accounts Receivable</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#supplierReport" type="button">Accounts Payable</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#pl" type="button">Profit & Loss (P&L)</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#stock" type="button">Inventory Valuation</button></li>
 </ul>
 
 <div class="tab-content" id="reportTabsContent">
 
     <div class="tab-pane fade show active" id="overview" role="tabpanel">
-        <div class="row g-3 g-md-4 mb-4">
-            <div class="col-6 col-md-3"><div class="card border-0 shadow-sm rounded-4 p-3 border-start border-primary border-4 h-100"><small class="text-muted fw-bold text-uppercase" style="font-size: 10px;">Today's Revenue</small><h4 class="fw-bold mb-0 fs-5 fs-md-4">{{ "{:,.0f}".format(daily_rev) }} MMK</h4></div></div>
-            <div class="col-6 col-md-3"><div class="card border-0 shadow-sm rounded-4 p-3 border-start border-success border-4 h-100"><small class="text-muted fw-bold text-uppercase" style="font-size: 10px;">Cash Drawer</small><h4 class="fw-bold mb-0 text-success fs-5 fs-md-4">{{ "{:,.0f}".format(cash_total) }} MMK</h4></div></div>
-            <div class="col-6 col-md-3"><div class="card border-0 shadow-sm rounded-4 p-3 border-start border-info border-4 h-100"><small class="text-muted fw-bold text-uppercase" style="font-size: 10px;">Digital Paid</small><h4 class="fw-bold mb-0 text-info fs-5 fs-md-4">{{ "{:,.0f}".format(digital_total) }} MMK</h4></div></div>
-            <div class="col-6 col-md-3"><div class="card border-0 shadow-sm rounded-4 p-3 border-start border-danger border-4 h-100"><small class="text-muted fw-bold text-uppercase" style="font-size: 10px;">Unpaid Credit</small><h4 class="fw-bold mb-0 text-danger fs-5 fs-md-4">{{ "{:,.0f}".format(credit_total) }} MMK</h4></div></div>
+        
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-primary border-4">
+                    <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Today's Revenue</p>
+                    <h4 class="fw-bold text-dark mb-0">{{ "{:,.0f}".format(daily_rev) }} <span class="fs-6 text-muted fw-normal">MMK</span></h4>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-success border-4">
+                    <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Cash Drawer</p>
+                    <h4 class="fw-bold text-success mb-0">{{ "{:,.0f}".format(cash_total) }} <span class="fs-6 text-success opacity-75 fw-normal">MMK</span></h4>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-info border-4">
+                    <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Digital Paid</p>
+                    <h4 class="fw-bold text-info mb-0">{{ "{:,.0f}".format(digital_total) }} <span class="fs-6 text-info opacity-75 fw-normal">MMK</span></h4>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-danger border-4">
+                    <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Unpaid Credit</p>
+                    <h4 class="fw-bold text-danger mb-0">{{ "{:,.0f}".format(credit_total) }} <span class="fs-6 text-danger opacity-75 fw-normal">MMK</span></h4>
+                </div>
+            </div>
         </div>
 
-        <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4">
-            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-3 gap-3">
-                <h5 class="fw-bold mb-0 text-dark">Sales Ledger</h5>
-                
-                <div class="d-flex flex-column flex-md-row gap-2 align-items-stretch align-items-md-center">
-                    <div id="customDateRange" class="d-none align-items-center gap-1 bg-light p-1 rounded-3 border">
-                        <input type="date" id="startDate" class="form-control form-control-sm border-0 bg-transparent" onchange="filterTableByDate()">
-                        <span class="text-muted fw-bold" style="font-size: 10px;">to</span>
-                        <input type="date" id="endDate" class="form-control form-control-sm border-0 bg-transparent" onchange="filterTableByDate()">
-                    </div>
-
-                    <select class="form-select form-select-sm border-0 bg-light fw-bold px-3 py-2" id="dateFilter" onchange="toggleCustomDate()">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden mb-4">
+            <div class="filter-bar m-3 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-filter text-muted"></i>
+                    <select class="form-select form-select-sm border-0 bg-white fw-bold shadow-sm" style="width: 150px;" id="dateFilter" onchange="toggleCustomDate()">
                         <option value="all">All Time</option>
                         <option value="daily">Today</option>
                         <option value="weekly">This Week</option>
                         <option value="monthly">This Month</option>
-                        <option value="yearly">This Year</option>
-                        <option value="custom">Custom Range...</option>
+                        <option value="custom">Custom Date...</option>
                     </select>
-
-                    <div class="d-flex gap-2">
-                        <a href="{{ url_for('export_excel') }}" class="btn btn-sm btn-outline-success fw-bold w-100 w-md-auto"><i class="fas fa-file-excel"></i> Excel</a>
-                        <a href="{{ url_for('export_pdf') }}" class="btn btn-sm btn-outline-danger fw-bold w-100 w-md-auto"><i class="fas fa-file-pdf"></i> PDF</a>
+                    <div id="customDateRange" class="d-none align-items-center gap-2">
+                        <input type="date" id="startDate" class="form-control form-control-sm border-0 shadow-sm" onchange="filterTableByDate()">
+                        <span class="text-muted small fw-bold">to</span>
+                        <input type="date" id="endDate" class="form-control form-control-sm border-0 shadow-sm" onchange="filterTableByDate()">
                     </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('export_excel') }}" class="btn btn-sm btn-outline-success fw-bold px-3"><i class="fas fa-file-excel me-1"></i> CSV / Excel</a>
+                    <a href="{{ url_for('export_pdf') }}" class="btn btn-sm btn-outline-danger fw-bold px-3"><i class="fas fa-file-pdf me-1"></i> Print PDF</a>
                 </div>
             </div>
 
             <div class="table-responsive">
-                <table class="table ledger-table" id="salesTable" style="min-width: 900px;">
+                <table class="table erp-table mb-0" style="min-width: 1000px;">
                     <thead>
                         <tr>
-                            <th>Ref #</th><th>Customer</th><th>Items Purchased</th><th>Amount</th><th>Payment</th><th>Date</th><th>Status</th><th class="text-end">Actions</th>
+                            <th>Ref #</th>
+                            <th>Date & Time</th>
+                            <th>Client / Customer</th>
+                            <th>Method</th>
+                            <th class="text-end">Amount Details</th> <th class="text-center">Status</th>
+                            <th class="text-center"><i class="fas fa-cog"></i></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for sale in all_sales %}
                         <tr class="sale-row" data-date="{{ sale.timestamp.strftime('%Y-%m-%d') }}">
-                            <td class="text-muted">#{{ sale.id }}</td>
-                            <td><div class="fw-bold text-dark">{{ sale.customer.name if sale.customer else 'Walk-in' }}</div></td>
-                            <td>
-                                {% for item in sale.items %}
-                                    <div class="item-text text-wrap"><i class="fas fa-circle item-bullet"></i> {{ item.product_name }} <span class="text-primary fw-bold">(x{{ item.quantity }})</span></div>
-                                {% endfor %}
-                            </td>
-                            <td>
-                                <div class="fw-bold text-dark fs-6">{{ "{:,.0f}".format(sale.total_amount) }} MMK</div>
-                                <small class="text-muted" style="font-size: 10px;">PAID: {{ "{:,.0f}".format(sale.amount_paid) }} MMK</small>
-                            </td>
-                            <td class="{% if sale.payment_method == 'kpay' %}pay-kpay{% elif sale.payment_method == 'wave' %}pay-wave{% else %}pay-cash{% endif %} text-uppercase">{{ sale.payment_method }}</td>
-                            <td class="text-danger fw-bold" style="font-size: 11px;">{{ sale.timestamp.strftime('%b %d, %Y') }}</td>
-                            <td>{% if sale.amount_paid >= sale.total_amount %}<span class="status-badge">✔ PAID</span>{% else %}<span class="status-debt">⚠ DEBT</span>{% endif %}</td>
+                            <td class="fw-bold text-muted small">#{{ sale.id }}</td>
+                            <td class="small">{{ sale.timestamp.strftime('%d %b, %Y %H:%M') }}</td>
+                            <td class="fw-bold">{{ sale.customer.name if sale.customer else 'Walk-in Customer' }}</td>
+                            <td><span class="text-uppercase small fw-bold text-muted">{{ sale.payment_method }}</span></td>
+                            
                             <td class="text-end">
-                                <div class="d-flex justify-content-end gap-1">
-                                    <a href="{{ url_for('receipt', sale_id=sale.id) }}" target="_blank" class="action-btn" title="Print"><i class="fas fa-print"></i></a>
-                                    {% if current_user.role == 'admin' %}
-                                    <form action="{{ url_for('edit_sale', sale_id=sale.id) }}" method="POST" class="d-inline"><button type="submit" class="action-btn text-warning" title="Edit"><i class="fas fa-edit"></i></button></form>
-                                    <form action="{{ url_for('delete_sale', sale_id=sale.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Permanently void this transaction?');"><button type="submit" class="action-btn delete"><i class="fas fa-trash"></i></button></form>
-                                    {% endif %}
-                                </div>
+                                <div class="fw-bold text-dark">{{ "{:,.0f}".format(sale.total_amount) }} MMK</div>
+                                <small class="text-muted d-block" style="font-size: 11px;">PAID: {{ "{:,.0f}".format(sale.amount_paid) }} MMK</small>
+                                {% if sale.amount_paid > sale.total_amount %}
+                                    <small class="text-success fw-bold d-block" style="font-size: 11px;">CHANGE: {{ "{:,.0f}".format(sale.amount_paid - sale.total_amount) }} MMK</small>
+                                {% endif %}
+                            </td>
+
+                            <td class="text-center">
+                                {% if sale.amount_paid >= sale.total_amount %}
+                                    <span class="badge-soft-success">PAID</span>
+                                {% else %}
+                                    <span class="badge-soft-danger">DEBT</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center text-nowrap">
+                                <a href="{{ url_for('receipt', sale_id=sale.id) }}" target="_blank" class="action-icon"><i class="fas fa-print"></i></a>
+                                {% if current_user.role == 'admin' %}
+                                <form action="{{ url_for('edit_sale', sale_id=sale.id) }}" method="POST" class="d-inline"><button type="submit" class="action-icon"><i class="fas fa-edit"></i></button></form>
+                                <form action="{{ url_for('delete_sale', sale_id=sale.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Permanently void this transaction?');"><button type="submit" class="action-icon danger"><i class="fas fa-trash"></i></button></form>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -110,64 +143,81 @@
     </div>
 
     <div class="tab-pane fade" id="clientReport" role="tabpanel">
-        <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-                <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-users me-2 text-primary"></i>Client Financial Report</h6>
-                <div class="d-flex gap-2">
-                    <select id="customerStatusFilter" class="form-select form-select-sm bg-light border-0 fw-bold px-3 py-2" onchange="filterCustomers()">
-                        <option value="all">All Clients</option>
-                        <option value="settled">Settled (Zero Balance)</option>
-                        <option value="debt">Owes Store (Debt)</option>
-                        <option value="credit">Has Store Credit</option>
-                    </select>
-                    <a href="{{ url_for('export_customers_excel') }}" class="btn btn-sm btn-success fw-bold text-nowrap py-2 px-3 shadow-sm">
-                        <i class="fas fa-file-excel me-1"></i> Export Excel
-                    </a>
-                </div>
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden">
+            <div class="filter-bar m-3 d-flex justify-content-between align-items-center">
+                <select id="customerStatusFilter" class="form-select form-select-sm border-0 shadow-sm fw-bold w-auto" onchange="filterCustomers()">
+                    <option value="all">All Clients</option>
+                    <option value="debt">Owes Store (Receivable)</option>
+                    <option value="credit">Store Credit (Liability)</option>
+                    <option value="settled">Settled (Zero Balance)</option>
+                </select>
+                <a href="{{ url_for('export_customers_excel') }}" class="btn btn-sm btn-outline-success fw-bold px-3"><i class="fas fa-file-excel me-1"></i> Export</a>
             </div>
 
             <div class="table-responsive">
-                <table class="table ledger-table" style="min-width: 700px;">
+                <table class="table erp-table mb-0" style="min-width: 800px;">
                     <thead>
                         <tr>
-                            <th>Client Name & ID</th>
-                            <th>Contact</th>
-                            <th class="text-end">Current Balance</th>
-                            <th class="text-end">Status</th>
-                            <th class="text-end">Last Activity / Settled Date</th>
+                            <th>Client Name</th>
+                            <th>Contact Info</th>
+                            <th>Last Activity</th>
+                            <th class="text-center">Account Status</th>
+                            <th class="num-col">Current Balance (MMK)</th>
                         </tr>
                     </thead>
-                    <tbody id="customerTableBody">
+                    <tbody>
                         {% for c in customers %}
                         {% set status = 'settled' %}
                         {% if c.balance > 0 %}{% set status = 'debt' %}{% elif c.balance < 0 %}{% set status = 'credit' %}{% endif %}
                         
                         <tr class="customer-row" data-status="{{ status }}">
-                            <td>
-                                <div class="fw-bold text-dark">{{ c.name }}</div>
-                                <div class="small text-muted">ID: #{{ c.id }}</div>
+                            <td class="fw-bold">{{ c.name }} <br><span class="small text-muted fw-normal">ID: #{{ c.id }}</span></td>
+                            <td>{{ c.phone }}</td>
+                            <td class="small text-muted">{% if c.sales %}{{ (c.sales|sort(attribute='timestamp', reverse=True)|first).timestamp.strftime('%d %b, %Y') }}{% else %}--{% endif %}</td>
+                            <td class="text-center">
+                                {% if c.balance > 0 %}<span class="badge-soft-danger">OWES STORE</span>
+                                {% elif c.balance < 0 %}<span class="badge-soft-warning">STORE CREDIT</span>
+                                {% else %}<span class="badge-soft-success">SETTLED</span>{% endif %}
                             </td>
-                            <td class="small">{{ c.phone }}</td>
-                            <td class="text-end fw-bold fs-6">
-                                {% if c.balance > 0 %}
-                                    <span class="text-danger">{{ "{:,.0f}".format(c.balance) }} MMK</span>
-                                {% elif c.balance < 0 %}
-                                    <span class="text-success">{{ "{:,.0f}".format(c.balance|abs) }} MMK</span>
-                                {% else %}
-                                    <span class="text-muted">0.00 MMK</span>
-                                {% endif %}
+                            <td class="num-col fw-bold fs-6 {% if c.balance > 0 %}text-danger{% elif c.balance < 0 %}text-success{% endif %}">
+                                {{ "{:,.0f}".format(c.balance|abs) }}
                             </td>
-                            <td class="text-end">
-                                {% if c.balance > 0 %}<span class="status-debt">OWES STORE</span>
-                                {% elif c.balance < 0 %}<span class="badge bg-success">STORE CREDIT</span>
-                                {% else %}<span class="status-badge">SETTLED</span>{% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="supplierReport" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden">
+            <div class="p-4 border-bottom bg-light">
+                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-truck text-muted me-2"></i>Accounts Payable Ledger</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table erp-table mb-0" style="min-width: 800px;">
+                    <thead>
+                        <tr>
+                            <th>Supplier / Vendor</th>
+                            <th>Contact Person</th>
+                            <th>Phone</th>
+                            <th class="text-center">Status</th>
+                            <th class="num-col">Total Owed (MMK)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in suppliers %}
+                        <tr>
+                            <td class="fw-bold">{{ s.name }}</td>
+                            <td>{{ s.contact_person or '--' }}</td>
+                            <td>{{ s.phone or '--' }}</td>
+                            <td class="text-center">
+                                {% if s.balance > 0 %}<span class="badge-soft-danger">PENDING PAYMENT</span>
+                                {% else %}<span class="badge-soft-success">CLEARED</span>{% endif %}
                             </td>
-                            <td class="text-end small text-muted">
-                                {% if c.sales %}
-                                    {{ (c.sales|sort(attribute='timestamp', reverse=True)|first).timestamp.strftime('%Y-%m-%d %I:%M %p') }}
-                                {% else %}
-                                    No History
-                                {% endif %}
+                            <td class="num-col fw-bold fs-6 {% if s.balance > 0 %}text-danger{% endif %}">
+                                {{ "{:,.0f}".format(s.balance) }}
                             </td>
                         </tr>
                         {% endfor %}
@@ -178,18 +228,26 @@
     </div>
 
     <div class="tab-pane fade" id="pl" role="tabpanel">
-        <div class="row g-4 justify-content-center">
+        <div class="row justify-content-center">
             <div class="col-12 col-md-10 col-lg-8">
-                <div class="card border-0 shadow-sm rounded-4 bg-white p-4 p-md-5 text-center">
-                    <h4 class="fw-bold text-dark mb-4">Total Profit & Loss Statement</h4>
-                    <div class="d-flex justify-content-between border-bottom py-2 py-md-3">
-                        <span class="text-muted fw-bold">Gross Revenue:</span><span class="fw-bold text-dark fs-5">{{ "{:,.0f}".format(total_revenue) }} MMK</span>
+                <div class="card border-0 shadow-sm rounded-4 bg-white p-5">
+                    <div class="text-center mb-5">
+                        <h4 class="fw-bold text-dark mb-1">Income Statement (P&L)</h4>
+                        <p class="text-muted small">All-Time Cumulative</p>
                     </div>
-                    <div class="d-flex justify-content-between border-bottom py-2 py-md-3">
-                        <span class="text-muted fw-bold">Cost of Goods (COGS):</span><span class="fw-bold text-danger fs-5">- {{ "{:,.0f}".format(total_cost) }} MMK</span>
+                    
+                    <div class="d-flex justify-content-between border-bottom border-2 py-3">
+                        <span class="text-dark fw-bold fs-5">Gross Revenue</span>
+                        <span class="fw-bold text-dark fs-5">{{ "{:,.0f}".format(total_revenue) }}</span>
                     </div>
-                    <div class="d-flex justify-content-between bg-light rounded-3 mt-3 mt-md-4 p-3 p-md-4">
-                        <h4 class="fw-bold text-dark mb-0 fs-5 fs-md-4">NET PROFIT:</h4><h4 class="fw-bold text-success mb-0 fs-5 fs-md-4">{{ "{:,.0f}".format(net_profit) }} MMK</h4>
+                    <div class="d-flex justify-content-between border-bottom py-3">
+                        <span class="text-muted fw-bold ps-4">Cost of Goods Sold (COGS)</span>
+                        <span class="fw-bold text-danger">- {{ "{:,.0f}".format(total_cost) }}</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between bg-light rounded-3 mt-4 p-4">
+                        <h3 class="fw-bold text-dark mb-0">NET PROFIT</h3>
+                        <h3 class="fw-bold text-success mb-0">{{ "{:,.0f}".format(net_profit) }} MMK</h3>
                     </div>
                 </div>
             </div>
@@ -197,19 +255,29 @@
     </div>
 
     <div class="tab-pane fade" id="stock" role="tabpanel">
-        <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4">
-            <h6 class="fw-bold mb-3 text-dark">Current Stock Valuation</h6>
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden">
+             <div class="p-4 border-bottom bg-light">
+                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-boxes text-muted me-2"></i>Asset Valuation</h6>
+            </div>
             <div class="table-responsive">
-                <table class="table ledger-table" style="min-width: 600px;">
-                    <thead><tr><th>Product Name</th><th>Category</th><th class="text-center">Stock</th><th class="text-end">Cost Value</th><th class="text-end">Revenue Value</th></tr></thead>
+                <table class="table erp-table mb-0" style="min-width: 800px;">
+                    <thead>
+                        <tr>
+                            <th>SKU / Product Name</th>
+                            <th>Category</th>
+                            <th class="num-col">Qty on Hand</th>
+                            <th class="num-col">Total Asset Cost (COGS)</th>
+                            <th class="num-col">Potential Revenue</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         {% for p in products %}
                         <tr>
-                            <td class="fw-bold">{{ p.name }} <div class="mt-1"><span class="badge bg-light text-dark border">{{ p.size }}</span></div></td>
-                            <td class="text-muted small">{{ p.category }}</td>
-                            <td class="text-center fw-bold fs-6 {% if p.stock <= 5 %}text-danger{% endif %}">{{ p.stock }}</td>
-                            <td class="text-end small">{{ "{:,.0f}".format(p.stock * p.purchase_price) }} MMK</td>
-                            <td class="text-end text-success fw-bold small">{{ "{:,.0f}".format(p.stock * p.selling_price) }} MMK</td>
+                            <td class="fw-bold">{{ p.name }} <span class="badge bg-light text-muted ms-2">{{ p.size }}</span></td>
+                            <td>{{ p.category }}</td>
+                            <td class="num-col fw-bold {% if p.stock <= 5 %}text-danger{% endif %}">{{ p.stock }}</td>
+                            <td class="num-col text-muted">{{ "{:,.0f}".format(p.stock * p.purchase_price) }}</td>
+                            <td class="num-col text-success fw-bold">{{ "{:,.0f}".format(p.stock * p.selling_price) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -218,36 +286,10 @@
         </div>
     </div>
 
-    <div class="tab-pane fade" id="adjust" role="tabpanel">
-        <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4">
-            <h6 class="fw-bold mb-3 text-dark"><i class="fas fa-clipboard-list me-2 text-primary"></i>Stock Adjustments</h6>
-            <div class="table-responsive">
-                <table class="table ledger-table" style="min-width: 500px;">
-                    <thead><tr><th>Date & Time</th><th>Item Name</th><th class="text-center">Adjustment</th><th>Reason</th></tr></thead>
-                    <tbody>
-                        {% for log in stock_logs %}
-                        <tr>
-                            <td class="text-muted small">{{ log.timestamp.strftime('%Y-%m-%d %I:%M %p') }}</td>
-                            <td class="fw-bold text-dark small">{{ log.product.name }}</td>
-                            <td class="text-center">
-                                <span class="badge {% if log.quantity > 0 %}bg-success{% else %}bg-danger{% endif %} rounded-pill px-2 py-1">
-                                    {% if log.quantity > 0 %}+{% endif %}{{ log.quantity }}
-                                </span>
-                            </td>
-                            <td class="text-muted small">{{ log.action }}</td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="4" class="text-center py-4 text-muted">No stock adjustments recorded.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 </div>
 
 <script>
-// Filter for Sales Date Range
+// Enterprise Date Filtering Script
 function toggleCustomDate() {
     const filter = document.getElementById('dateFilter').value;
     const customDiv = document.getElementById('customDateRange');
@@ -268,9 +310,11 @@ function filterTableByDate() {
     const offset = today.getTimezoneOffset() * 60000;
     const localToday = new Date(today.getTime() - offset);
     const todayString = localToday.toISOString().split('T')[0];
+    
     const firstDayOfWeek = new Date(localToday);
     firstDayOfWeek.setDate(localToday.getDate() - localToday.getDay());
     const firstDayString = firstDayOfWeek.toISOString().split('T')[0];
+    
     const currentMonth = localToday.getMonth();
     const currentYear = localToday.getFullYear();
     const startInput = document.getElementById('startDate').value;
@@ -284,26 +328,20 @@ function filterTableByDate() {
         if (filter === 'daily') { showRow = (rowDateStr === todayString); } 
         else if (filter === 'weekly') { showRow = (rowDateStr >= firstDayString); } 
         else if (filter === 'monthly') { showRow = (rowDateObj.getUTCMonth() === currentMonth && rowDateObj.getUTCFullYear() === currentYear); } 
-        else if (filter === 'yearly') { showRow = (rowDateObj.getUTCFullYear() === currentYear); } 
-        else if (filter === 'custom' && startInput && endInput) {
-            showRow = (rowDateStr >= startInput && rowDateStr <= endInput);
-        }
+        else if (filter === 'custom' && startInput && endInput) { showRow = (rowDateStr >= startInput && rowDateStr <= endInput); }
+        
         row.style.display = showRow ? "" : "none";
     }
 }
 
-// Filter for Customer Status
+// AR/AP Status Filter
 function filterCustomers() {
     const filterValue = document.getElementById('customerStatusFilter').value;
     const rows = document.querySelectorAll('.customer-row');
     
     rows.forEach(row => {
         const rowStatus = row.getAttribute('data-status');
-        if (filterValue === 'all' || rowStatus === filterValue) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
+        row.style.display = (filterValue === 'all' || rowStatus === filterValue) ? '' : 'none';
     });
 }
 </script>
