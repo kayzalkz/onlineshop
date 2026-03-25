@@ -579,16 +579,23 @@ def suppliers():
                 s.name = request.form.get('name')
                 s.contact_person = request.form.get('contact_person')
                 s.phone = request.form.get('phone')
-                s.address = request.form.get('address')
+                s.balance = request.form.get('balance', s.balance) # Update balance as well
                 flash(_('Supplier details updated.'), 'success')
                 
         elif action == 'delete':
             s = Supplier.query.get(request.form.get('supplier_id'))
             if s:
-                for p in s.products:
-                    p.supplier_id = None
-                db.session.delete(s)
-                flash(_('Supplier removed from system.'), 'warning')
+                # DATABASE FIX: Check if supplier has history before deleting
+                has_orders = PurchaseOrder.query.filter_by(supplier_id=s.id).first()
+                has_payments = SupplierPayment.query.filter_by(supplier_id=s.id).first()
+                
+                if has_orders or has_payments:
+                    flash(_('Error: Cannot delete this supplier because they have existing Purchase Orders or Payments. Please edit their details instead.'), 'danger')
+                else:
+                    for p in s.products:
+                        p.supplier_id = None
+                    db.session.delete(s)
+                    flash(_('Supplier removed from system.'), 'warning')
                 
         db.session.commit()
         return redirect(url_for('suppliers'))
