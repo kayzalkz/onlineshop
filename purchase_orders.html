@@ -43,10 +43,12 @@
                     </td>
                     <td class="text-end">
                         {% if po.status == 'Pending' %}
-                            <form action="{{ url_for('receive_po', po_id=po.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirm receipt? This will instantly increase your inventory stock and add to your supplier debt.');">
+                            <form action="{{ url_for('receive_po', po_id=po.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirm receipt? This will instantly increase your inventory stock and add to your supplier debt.');"> 
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <button type="submit" class="btn btn-sm btn-success fw-bold rounded-pill px-3 shadow-sm"><i class="fas fa-check-box"></i> Receive Goods</button>
                             </form>
                             <form action="{{ url_for('cancel_po', po_id=po.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Cancel this PO?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <button type="submit" class="btn btn-sm btn-outline-danger ms-1" title="Cancel Order"><i class="fas fa-times"></i></button>
                             </form>
                         {% endif %}
@@ -64,6 +66,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
             <form action="{{ url_for('create_po') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-header border-0 pb-0">
                     <h5 class="fw-bold mb-0">Draft New Purchase Order</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
