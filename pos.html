@@ -4,25 +4,23 @@
 {% block content %}
 <style>
     /* --- RESPONSIVE LAYOUT ENGINE --- */
-    /* Only apply the 260px margin on Desktop */
     @media (min-width: 992px) {
         .main-content { margin-left: 260px; width: calc(100% - 260px); }
-        .sidebar { width: 260px; transform: translateX(0); }
+        .sidebar { width: 260px; transform: translateX(0); z-index: 2000; }
     }
     
-    /* Mobile Fixes */
     @media (max-width: 991px) {
         .main-content { margin-left: 0; width: 100%; min-height: 100vh; }
-        .sidebar { transform: translateX(-100%); width: 260px; }
+        .sidebar { transform: translateX(-100%); width: 260px; z-index: 2000 !important; position: fixed; }
         .sidebar.active { transform: translateX(0); box-shadow: 10px 0 30px rgba(0,0,0,0.2); }
         
-        /* Layout Swap: Put Cart on top so it's easier to see on phone */
+        /* Layout Swap: Cart on top for mobile */
         .product-grid-container { order: 2; }
         .cart-column { order: 1; margin-bottom: 20px; }
-        .sticky-top { position: relative !important; top: 0 !important; }
+        .sticky-top { position: relative !important; top: 0 !important; z-index: 10 !important; }
     }
 
-    /* --- ORIGINAL STYLES (NO CHANGES TO YOUR DESIGN) --- */
+    /* --- ORIGINAL STYLES --- */
     @media print {
         body * { visibility: hidden; }
         #invoiceModal, #invoiceModal * { visibility: visible; }
@@ -45,22 +43,29 @@
     .ledger-table th { color: #6b7280; font-weight: bold; text-transform: uppercase; font-size: 12px; border-bottom: 2px solid #e5e7eb; }
     .ledger-table td { padding: 15px 10px; border-bottom: 1px solid #f3f4f6; }
     .action-btn { background: transparent; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 12px; color: #6b7280; text-decoration: none; display: inline-block;}
+    .pay-kpay { color: #6d28d9; font-weight: bold; }
+    .pay-wave { color: #2563eb; font-weight: bold; }
+    .pay-cash { color: #059669; font-weight: bold; }
+    .pay-bank { color: #d97706; font-weight: bold; }
 </style>
 
 <div class="container-fluid p-0">
     <div class="row g-4 mb-5">
+        
         <div class="col-xl-7 col-lg-6 product-grid-container">
             <div class="input-group mb-3 shadow-sm rounded-4 overflow-hidden">
                 <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
                 <input type="text" id="itemSearch" class="form-control border-0 py-3" placeholder="{{ _('Search items...') }}" onkeyup="searchItems()">
             </div>
-            <div class="row g-2 overflow-auto pe-2" style="max-height: 60vh;" id="productGrid">
+            <div class="row g-2 overflow-auto pe-2" style="max-height: 65vh;" id="productGrid">
                 {% for p in products %}
                 <div class="col-md-4 col-6 product-card-container" data-name="{{ p.name|lower }}" data-size="{{ p.size|lower }}">
-                    <div class="card product-card h-100 shadow-sm border-0 position-relative" onclick="addToCart('{{ p.id }}', '{{ p.name }}', {{ p.selling_price }})" style="cursor: pointer;">
+                    <div class="card product-card h-100 shadow-sm border-0 position-relative" 
+                         onclick="addToCart('{{ p.id }}', '{{ p.name }}', {{ p.selling_price }}, {{ p.stock }})" style="cursor: pointer;">
                         <div class="bg-light text-center py-3 rounded-top-3">
                             <span class="badge bg-dark position-absolute top-0 end-0 m-2">{{ p.size }}</span>
-                            <i class="fas fa-tshirt fa-2x text-muted opacity-50"></i>
+                            <span class="badge bg-secondary position-absolute top-0 start-0 m-2">Stock: {{ p.stock }}</span>
+                            <i class="fas fa-tshirt fa-2x text-muted opacity-50 mt-3"></i>
                         </div>
                         <div class="card-body p-2 text-center">
                             <h6 class="fw-bold mb-1 text-truncate" style="font-size: 0.9rem;">{{ p.name }}</h6>
@@ -73,10 +78,14 @@
         </div>
 
         <div class="col-xl-5 col-lg-6 cart-column">
+            
             {% if session.get('editing_sale_id') %}
-            <div class="alert alert-warning border-warning shadow-sm rounded-4 d-flex justify-content-between align-items-center mb-3">
-                <div><i class="fas fa-exclamation-triangle me-2"></i><strong>Editing Sale #{{ session.get('editing_sale_id') }}</strong></div>
-                <a href="{{ url_for('cancel_edit') }}" class="btn btn-sm btn-danger fw-bold rounded-pill">Cancel Edit</a>
+            <div class="bg-warning bg-opacity-25 border border-warning shadow-sm rounded-4 p-3 d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <i class="fas fa-exclamation-triangle text-dark me-2"></i>
+                    <strong class="text-dark">Editing Sale #{{ session.get('editing_sale_id') }}</strong>
+                </div>
+                <a href="{{ url_for('cancel_edit') }}" class="btn btn-sm btn-danger fw-bold rounded-pill shadow-sm">Cancel Edit</a>
             </div>
             {% endif %}
 
@@ -85,7 +94,7 @@
                     <h5 class="fw-bold mb-0">{{ _('Current Order') }}</h5>
                     <button class="btn btn-sm btn-outline-danger border-0 rounded-pill px-3" onclick="clearCart()">Clear</button>
                 </div>
-                <div class="card-body px-0 overflow-auto" style="max-height: 30vh;">
+                <div class="card-body px-0 overflow-auto" style="max-height: 35vh;">
                     <table class="table align-middle mb-0">
                         <tbody id="cartBody">
                             <tr id="emptyMsg"><td class="text-center py-5 text-muted">{{ _('Tap an item to add to bag') }}</td></tr>
@@ -184,7 +193,7 @@
 </div>
 
 {% if last_sale %}
-<div class="modal fade show" id="invoiceModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.7); z-index: 1050;">
+<div class="modal fade show" id="invoiceModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.7); z-index: 3000;">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content bg-transparent border-0">
             <div class="d-flex justify-content-center gap-2 mb-3 no-print">
@@ -219,115 +228,11 @@
 </div>
 {% endif %}
 
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 <script>
-    function closeReceipt() { 
-        document.getElementById('invoiceModal').style.display = 'none'; 
-        window.history.replaceState({}, document.title, "{{ url_for('pos') }}");
-    }
-
-    // ORIGINAL LOGIC
+    // Variables passed to JS
     let cart = {{ session.get('edit_cart', {}) | tojson | safe }}; 
-
-    document.addEventListener("DOMContentLoaded", function() {
-        if (Object.keys(cart).length > 0) {
-            updateCartUI();
-            let editCust = "{{ session.get('edit_customer', '') }}";
-            if (editCust && editCust !== "None") { document.getElementById('customerSelect').value = editCust; }
-            let editPaid = "{{ session.get('edit_paid', '') }}";
-            if (editPaid) { document.getElementById('amountPaidInput').value = editPaid; }
-            calculateScenario();
-        }
-    });
-
-    function searchItems() {
-        let input = document.getElementById('itemSearch').value.toLowerCase();
-        let cards = document.getElementsByClassName('product-card-container');
-        for (let card of cards) {
-            let name = card.getAttribute('data-name');
-            let size = card.getAttribute('data-size');
-            card.style.display = (name.includes(input) || size.includes(input)) ? "" : "none";
-        }
-    }
-
-    function addToCart(id, name, price) {
-        if (cart[id]) { cart[id].qty += 1; } else { cart[id] = { name: name, price: price, qty: 1 }; }
-        updateCartUI();
-    }
-
-    function adjustQty(id, change) {
-        if (cart[id]) {
-            cart[id].qty += change;
-            if (cart[id].qty <= 0) { delete cart[id]; }
-            updateCartUI();
-        }
-    }
-
-    function clearCart() { cart = {}; updateCartUI(); }
-
-    function updateCartUI() {
-        const tbody = document.getElementById('cartBody');
-        const completeBtn = document.getElementById('completeBtn');
-        
-        if (Object.keys(cart).length === 0) {
-            tbody.innerHTML = '<tr id="emptyMsg"><td class="text-center py-5 text-muted">{{ _("Tap an item to add to bag") }}</td></tr>';
-            document.getElementById('displayTotal').innerText = "0 MMK";
-            document.getElementById('formTotalAmount').value = 0;
-            document.getElementById('amountPaidInput').value = 0;
-            document.getElementById('formCartData').value = "";
-            completeBtn.disabled = true;
-            return;
-        }
-
-        tbody.innerHTML = '';
-        let total = 0;
-        let cartDataString = [];
-        for (const [id, item] of Object.entries(cart)) {
-            let subtotal = item.price * item.qty;
-            total += subtotal;
-            cartDataString.push(`${id}:${item.qty}`); 
-            tbody.innerHTML += `
-                <tr class="border-bottom">
-                    <td class="ps-3 py-2">
-                        <div class="fw-bold small">${item.name}</div>
-                        <div class="text-muted smaller">${item.price.toLocaleString()} MMK</div>
-                    </td>
-                    <td style="width: 100px;">
-                        <div class="input-group input-group-sm">
-                            <button type="button" class="btn btn-outline-secondary" onclick="adjustQty('${id}', -1)">-</button>
-                            <input type="text" class="form-control text-center bg-white" value="${item.qty}" readonly>
-                            <button type="button" class="btn btn-outline-secondary" onclick="adjustQty('${id}', 1)">+</button>
-                        </div>
-                    </td>
-                    <td class="text-end pe-3 small fw-bold">${subtotal.toLocaleString()}</td>
-                </tr>`;
-        }
-        document.getElementById('displayTotal').innerText = total.toLocaleString() + " MMK";
-        document.getElementById('formTotalAmount').value = total;
-        document.getElementById('formCartData').value = cartDataString.join(',');
-        
-        if(document.activeElement !== document.getElementById('amountPaidInput')){
-            document.getElementById('amountPaidInput').value = total; 
-        }
-        completeBtn.disabled = false;
-        calculateScenario();
-    }
-
-    function calculateScenario() {
-        const selectElement = document.getElementById('customerSelect');
-        const scenarioBox = document.getElementById('creditScenarioBox');
-        if (!selectElement.value) { scenarioBox.classList.add('d-none'); return; }
-
-        const selected = selectElement.options[selectElement.selectedIndex];
-        const currentBalance = parseFloat(selected.getAttribute('data-balance')); 
-        const totalDue = parseFloat(document.getElementById('formTotalAmount').value) || 0;
-        const amountPaid = parseFloat(document.getElementById('amountPaidInput').value) || 0;
-        const projectedBalance = currentBalance + (totalDue - amountPaid);
-
-        scenarioBox.classList.remove('d-none');
-        scenarioBox.innerHTML = `
-            <div class="d-flex justify-content-between"><span>Current:</span> <b>${currentBalance.toLocaleString()} MMK</b></div>
-            <div class="d-flex justify-content-between"><span>New:</span> <b class="${projectedBalance > 0 ? 'text-danger' : 'text-success'}">${projectedBalance.toLocaleString()} MMK</b></div>`;
-    }
+    let editCust = "{{ session.get('edit_customer', '') }}";
+    let editPaid = "{{ session.get('edit_paid', '') }}";
 </script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% endblock %}
