@@ -12,6 +12,7 @@ import pandas as pd
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from werkzeug.utils import secure_filename
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'kzl_boutique_secure_2026'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:japu@localhost/pos_system'
@@ -57,21 +58,16 @@ class Customer(db.Model):
     phone = db.Column(db.String(20))
     balance = db.Column(db.Numeric(10, 2), default=0.00)
 
-
-    
-# --- 1. ADD THIS NEW MODEL ---
 class Supplier(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), nullable=False)
     contact_person = db.Column(db.String(150))
     phone = db.Column(db.String(50))
     address = db.Column(db.Text)
-    # Positive balance means we OWE them money (Accounts Payable)
     balance = db.Column(db.Numeric(10, 2), default=0.00) 
     
     products = db.relationship('Product', backref='supplier', lazy=True)
 
-# --- 2. UPDATE YOUR EXISTING PRODUCT MODEL ---
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150))
@@ -82,8 +78,8 @@ class Product(db.Model):
     selling_price = db.Column(db.Numeric(10, 2))
     stock = db.Column(db.Integer, default=0)
     
-    # ADD THIS LINE TO LINK THE PRODUCT TO A SUPPLIER
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'), nullable=True)
+
 class PurchaseOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'), nullable=False)
@@ -107,7 +103,7 @@ class Sale(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     total_amount = db.Column(db.Numeric(10, 2))
     amount_paid = db.Column(db.Numeric(10, 2))
-    timestamp = db.Column(db.DateTime, default=get_mmt_time) # MMT FIX
+    timestamp = db.Column(db.DateTime, default=get_mmt_time)
     transaction_type = db.Column(db.String(20))
     payment_method = db.Column(db.String(50))
     payment_info = db.Column(db.String(100))
@@ -129,7 +125,7 @@ class StockLog(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
     quantity = db.Column(db.Integer) 
     action = db.Column(db.String(100)) 
-    timestamp = db.Column(db.DateTime, default=get_mmt_time) # MMT FIX
+    timestamp = db.Column(db.DateTime, default=get_mmt_time)
     product = db.relationship('Product', backref='stock_logs')
 
 @login_manager.user_loader
@@ -148,31 +144,26 @@ def inject_company():
 def dashboard():
     today = get_mmt_time().date() 
     
-    # KPIs
     total_sales = db.session.query(func.sum(Sale.total_amount)).filter(func.date(Sale.timestamp) == today).scalar() or 0
     total_stock = db.session.query(func.sum(Product.stock)).scalar() or 0
     active_credit = db.session.query(func.sum(Customer.balance)).filter(Customer.balance > 0).scalar() or 0
     supplier_debt = db.session.query(func.sum(Supplier.balance)).filter(Supplier.balance > 0).scalar() or 0
     
-    # Best Sellers
     top_items = db.session.query(
         SaleItem.product_name, 
         func.sum(SaleItem.quantity).label('total_sold')
     ).group_by(SaleItem.product_name).order_by(func.sum(SaleItem.quantity).desc()).limit(5).all()
 
-    # NEW: Top 5 Customers by Total Spent
     top_customers = db.session.query(
         Customer.name,
         func.sum(Sale.total_amount).label('total_spent')
     ).join(Sale).group_by(Customer.id).order_by(func.sum(Sale.total_amount).desc()).limit(5).all()
 
-    # NEW: Top 5 Suppliers by Total Ordered
     top_suppliers = db.session.query(
         Supplier.name,
         func.sum(PurchaseOrder.total_amount).label('total_ordered')
     ).join(PurchaseOrder).group_by(Supplier.id).order_by(func.sum(PurchaseOrder.total_amount).desc()).limit(5).all()
     
-    # 7-Day Chart Data
     chart_data = []
     for i in range(6, -1, -1):
         day = (today - timedelta(days=i))
@@ -210,8 +201,6 @@ def reports():
     products = Product.query.all()
     stock_logs = StockLog.query.order_by(StockLog.timestamp.desc()).limit(200).all()
     customers = Customer.query.all() 
-    
-    # NEW: Pass suppliers to the reports page
     suppliers = Supplier.query.all()
     
     chart_data = []
@@ -223,7 +212,7 @@ def reports():
     return render_template('reports.html', 
                            daily_rev=daily_rev, cash_total=cash_total, digital_total=digital_total, credit_total=credit_total,
                            all_sales=all_sales, products=products, stock_logs=stock_logs,
-                           customers=customers, suppliers=suppliers, # <-- Added suppliers here
+                           customers=customers, suppliers=suppliers,
                            total_revenue=total_revenue, total_cost=total_cost, net_profit=net_profit, chart_data=chart_data)
 
 
@@ -252,6 +241,10 @@ def process_sale():
     if not cart_data:
         flash(_('Cart is empty!'), 'danger')
         return redirect(url_for('pos'))
+
+    # ✅ BUG FIX: Prevent walk-in customers from adding overpayments to the Cash Drawer
+    if not cust_id and amount_paid > total_amount:
+        amount_paid = total_amount
 
     t_type = 'paid' if amount_paid >= total_amount else 'credit'
 
@@ -283,7 +276,7 @@ def process_sale():
         sale = Sale(
             total_amount=total_amount, amount_paid=amount_paid, transaction_type=t_type,
             payment_method=p_method, payment_info=p_info, customer_id=cust_id if cust_id else None,
-            timestamp=get_mmt_time() # MMT FIX
+            timestamp=get_mmt_time()
         )
         db.session.add(sale)
         db.session.flush()
@@ -396,14 +389,12 @@ def create_po():
         flash(_('Invalid Purchase Order data.'), 'danger')
         return redirect(url_for('purchase_orders'))
 
-    # 1. Create the base PO
     po = PurchaseOrder(supplier_id=supplier_id, status='Pending', total_amount=0)
     db.session.add(po)
-    db.session.flush() # Get the PO ID before committing
+    db.session.flush() 
 
     total_amount = Decimal('0')
 
-    # 2. Add the items
     for i in range(len(product_ids)):
         if product_ids[i] and int(quantities[i]) > 0:
             qty = int(quantities[i])
@@ -424,13 +415,9 @@ def receive_po(po_id):
     po = PurchaseOrder.query.get_or_404(po_id)
     
     if po.status == 'Pending':
-        # 1. Update Status
         po.status = 'Received'
-        
-        # 2. Increase the amount we owe the supplier (Accounts Payable)
         po.supplier.balance += po.total_amount 
         
-        # 3. Increase Inventory Stock & Log it
         for item in po.items:
             item.product.stock += item.quantity
             db.session.add(StockLog(
@@ -465,13 +452,16 @@ def inventory():
     if request.method == 'POST':
         action = request.form.get('action')
         
-        # --- 1. ADD PRODUCT ---
+        # Extract supplier ID properly
+        supplier_id = request.form.get('supplier_id')
+        if supplier_id == "":
+            supplier_id = None
+        
         if action == 'add_product':
             name = request.form.get('name', '').strip()
             size = request.form.get('size', '').strip()
             color = request.form.get('color', '').strip()
             
-            # Check for duplicates before saving
             existing_product = Product.query.filter_by(name=name, size=size, color=color).first()
             
             if existing_product:
@@ -482,6 +472,7 @@ def inventory():
                     selling_price = Decimal(request.form.get('selling_price', '0'))
                     stock_qty = int(request.form.get('stock', '0'))
                     
+                    # ✅ BUG FIX: Save the supplier_id when creating a new product
                     p = Product(
                         name=name,
                         category=request.form.get('category'),
@@ -489,7 +480,8 @@ def inventory():
                         color=color,
                         purchase_price=purchase_price,
                         selling_price=selling_price,
-                        stock=stock_qty
+                        stock=stock_qty,
+                        supplier_id=supplier_id
                     )
                     db.session.add(p)
                     db.session.flush()
@@ -501,7 +493,6 @@ def inventory():
                 except ValueError:
                     flash(_('Error: Invalid numbers entered for price or stock.'), 'danger')
                     
-        # --- 2. EDIT PRODUCT ---
         elif action == 'edit_product':
             p = Product.query.get(request.form.get('product_id'))
             if p:
@@ -512,20 +503,21 @@ def inventory():
                     p.color = request.form.get('color', '').strip()
                     p.purchase_price = Decimal(request.form.get('purchase_price', '0'))
                     p.selling_price = Decimal(request.form.get('selling_price', '0'))
+                    
+                    # ✅ BUG FIX: Update the supplier_id when editing
+                    p.supplier_id = supplier_id
+                    
                     flash(_('Product updated successfully.'), 'success')
                 except ValueError:
                     flash(_('Error: Invalid numbers entered for price.'), 'danger')
 
-        # --- 3. DELETE PRODUCT ---
         elif action == 'delete_product':
             p = Product.query.get(request.form.get('product_id'))
             if p:
-                # Delete logs first to prevent foreign key errors
                 StockLog.query.filter_by(product_id=p.id).delete() 
                 db.session.delete(p)
                 flash(_('Product permanently deleted.'), 'warning')
                 
-        # --- 4. ADJUST STOCK ---
         elif action == 'adjust_stock':
             p = Product.query.get(request.form.get('product_id'))
             try:
@@ -542,23 +534,11 @@ def inventory():
         db.session.commit()
         return redirect(url_for('inventory'))
         
-    # GET Request: Render the page
-    # Capture supplier ID during POST actions
-    supplier_id = request.form.get('supplier_id')
-    if supplier_id == "":
-        supplier_id = None
-        
-    # [Your existing code for adding/editing a product goes here]
-    # Make sure to add `supplier_id=supplier_id` when you create or update the Product!
-
-    # Pass suppliers to the template so the dropdowns work
     return render_template('inventory.html', 
                            products=Product.query.all(), 
                            suppliers=Supplier.query.all())
 
-
-
-   # ==========================================
+# ==========================================
 # SUPPLIER MANAGEMENT ROUTES
 # ==========================================
 
@@ -591,7 +571,6 @@ def suppliers():
         elif action == 'delete':
             s = Supplier.query.get(request.form.get('supplier_id'))
             if s:
-                # Unlink products before deleting to prevent database errors
                 for p in s.products:
                     p.supplier_id = None
                 db.session.delete(s)
@@ -613,7 +592,6 @@ def supplier_pay(supplier_id):
         amount = Decimal('0')
 
     if amount > 0:
-        # Subtract the payment from what we owe the supplier
         supplier.balance -= amount
         db.session.commit()
         flash(f'Payment of {amount:,.0f} MMK recorded for {supplier.name}.', 'success')
@@ -635,27 +613,33 @@ def customers():
         db.session.commit()
     return render_template('customers.html', customers=Customer.query.all())
 
+@app.route('/customer/<int:customer_id>')
+@login_required
+def customer_detail(customer_id):
+    customer = Customer.query.get_or_404(customer_id)
+    history = Sale.query.filter_by(customer_id=customer_id).order_by(Sale.timestamp.desc()).all()
+    total_spent = sum(s.total_amount for s in history if s.total_amount > 0)
+    
+    return render_template('customer_detail.html', 
+                           customer=customer, 
+                           history=history, 
+                           total_spent=total_spent)
+
 @app.route('/customer/repay/<int:customer_id>', methods=['POST'])
 @login_required
 def customer_repay(customer_id):
     customer = Customer.query.get_or_404(customer_id)
-    
-    # Get values from the form
     action = request.form.get('action')
-    # Convert float/string input to Decimal immediately
     amount = Decimal(request.form.get('amount', '0'))
     payment_method = request.form.get('payment_method', 'cash')
     payment_info = request.form.get('payment_info', '')
 
     if amount > 0:
-        # Determine if we are reducing debt or adding prepaid credit
         if action == 'pay_debt':
             customer.balance -= amount
         elif action == 'add_credit':
-            # Adding credit is mathematically the same as subtracting from a debt balance
             customer.balance -= amount
         
-        # Record the transaction as a Sale with 0 total but a positive amount_paid
         new_repayment = Sale(
             customer_id=customer.id,
             total_amount=0,
@@ -689,14 +673,10 @@ def company_profile():
         profile.phone = request.form.get('phone')
         profile.address = request.form.get('address')
         
-        # --- NEW LOGO UPLOAD LOGIC ---
         logo_file = request.files.get('logo')
         if logo_file and logo_file.filename != '':
-            # Secure the filename to prevent malicious uploads
             filename = secure_filename(logo_file.filename)
-            # Save it to the static/uploads folder
             logo_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            # Update the database
             profile.logo_filename = filename
             
         db.session.commit()
@@ -723,11 +703,9 @@ def manage_users():
         elif action == 'edit':
             user_id = request.form.get('user_id')
             u = User.query.get(user_id)
-            # Protect the primary admin account from being accidentally downgraded
             if u and u.username != 'admin': 
                 u.role = request.form.get('role')
                 new_pw = request.form.get('password')
-                # Only change the password if the admin typed a new one
                 if new_pw and new_pw.strip() != "": 
                     u.password_hash = bcrypt.generate_password_hash(new_pw).decode('utf-8')
                 flash(_('User account updated successfully.'), 'success')
@@ -781,7 +759,6 @@ def export_excel():
     
     output.seek(0)
     return send_file(output, download_name=f"Standard_Sales_Report_{get_mmt_time().strftime('%Y-%m-%d')}.xlsx", as_attachment=True)
-
 
 
 @app.route('/export/customers_excel')
@@ -879,10 +856,8 @@ def abs_filter(value):
 
 if __name__ == '__main__':
     with app.app_context():
-        # 1. Build the empty tables
         db.create_all()
         
-        # 2. Automatically create a default Admin user if none exists
         admin_user = User.query.filter_by(username='admin').first()
         if not admin_user:
             hashed_pw = bcrypt.generate_password_hash('admin123').decode('utf-8')
@@ -895,7 +870,6 @@ if __name__ == '__main__':
             print("Please login and change this immediately!")
             print("=========================================")
             
-        # 3. Automatically create a blank Company Profile if none exists
         company_profile = Company.query.first()
         if not company_profile:
             new_company = Company(name="My Boutique Setup", phone="Update in Settings", address="Update in Settings")
