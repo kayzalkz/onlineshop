@@ -8,6 +8,7 @@
         <div class="card border-0 shadow-sm rounded-4 bg-white mt-1 mt-md-3">
             <div class="card-body p-4 p-md-5">
                 <form action="{{ url_for('company_profile') }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="text-center mb-4 mb-md-5">
                         <div class="mb-3">
                             {% if profile and profile.logo_filename %}
