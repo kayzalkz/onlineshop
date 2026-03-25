@@ -369,20 +369,28 @@ def inventory():
 @app.route('/reports')
 @login_required
 def reports():
-    today = get_mmt_time().date() # MMT FIX
+    today = get_mmt_time().date() 
+    
+    # --- 1. Today's KPIs ---
     daily_rev = db.session.query(func.sum(Sale.total_amount)).filter(func.date(Sale.timestamp) == today).scalar() or 0
     cash_total = db.session.query(func.sum(Sale.amount_paid)).filter(func.date(Sale.timestamp) == today, Sale.payment_method == 'cash').scalar() or 0
     digital_total = db.session.query(func.sum(Sale.amount_paid)).filter(func.date(Sale.timestamp) == today, Sale.payment_method != 'cash').scalar() or 0
     credit_total = db.session.query(func.sum(Customer.balance)).filter(Customer.balance > 0).scalar() or 0
     
+    # --- 2. Total Profit & Loss Math ---
     total_revenue = db.session.query(func.sum(SaleItem.quantity * SaleItem.price)).scalar() or Decimal('0')
     total_cost = db.session.query(func.sum(SaleItem.quantity * SaleItem.purchase_cost)).scalar() or Decimal('0')
     net_profit = total_revenue - total_cost
 
+    # --- 3. Fetch Data for Tables ---
     all_sales = Sale.query.order_by(Sale.timestamp.desc()).all()
     products = Product.query.all()
     stock_logs = StockLog.query.order_by(StockLog.timestamp.desc()).limit(200).all()
     
+    # NEW: Fetch all customers for the Client Financial Report tab
+    customers = Customer.query.all() 
+    
+    # --- 4. 7-Day Revenue Trend Chart ---
     chart_data = []
     for i in range(6, -1, -1):
         day = (today - timedelta(days=i))
@@ -390,10 +398,18 @@ def reports():
         chart_data.append(float(val))
 
     return render_template('reports.html', 
-                           daily_rev=daily_rev, cash_total=cash_total, digital_total=digital_total, credit_total=credit_total,
-                           all_sales=all_sales, products=products, stock_logs=stock_logs,
-                           total_revenue=total_revenue, total_cost=total_cost, net_profit=net_profit, chart_data=chart_data)
-
+                           daily_rev=daily_rev, 
+                           cash_total=cash_total, 
+                           digital_total=digital_total, 
+                           credit_total=credit_total,
+                           all_sales=all_sales, 
+                           products=products, 
+                           stock_logs=stock_logs,
+                           customers=customers,  # Passed to the template here!
+                           total_revenue=total_revenue, 
+                           total_cost=total_cost, 
+                           net_profit=net_profit, 
+                           chart_data=chart_data)
 # ==========================================
 # MANAGEMENT ROUTES
 # ==========================================
@@ -553,6 +569,59 @@ def export_excel():
     
     output.seek(0)
     return send_file(output, download_name=f"Standard_Sales_Report_{get_mmt_time().strftime('%Y-%m-%d')}.xlsx", as_attachment=True)
+
+
+
+@app.route('/export/customers_excel')
+@login_required
+def export_customers_excel():
+    customers = Customer.query.all()
+    data = []
+    
+    for c in customers:
+        if c.balance > 0:
+            status = "Owes Store (Debt)"
+        elif c.balance < 0:
+            status = "Store Credit"
+        else:
+            status = "Settled"
+            
+        last_activity = "No History"
+        if c.sales:
+            last_sale = sorted(c.sales, key=lambda x: x.timestamp, reverse=True)[0]
+            last_activity = last_sale.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+
+        data.append({
+            'Client ID': f"#{c.id}",
+            'Client Name': c.name,
+            'Phone Number': c.phone,
+            'Current Balance (MMK)': float(abs(c.balance)),
+            'Financial Status': status,
+            'Last Transaction / Settlement Date': last_activity
+        })
+    
+    df = pd.DataFrame(data)
+    output = io.BytesIO()
+    
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Client_Ledger_Report')
+        worksheet = writer.sheets['Client_Ledger_Report']
+        
+        for col in worksheet.columns:
+            max_length = 0
+            column = col[0].column_letter 
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            worksheet.column_dimensions[column].width = adjusted_width
+
+    output.seek(0)
+    filename = f"Client_Financial_Report_{get_mmt_time().strftime('%Y-%m-%d')}.xlsx"
+    return send_file(output, download_name=filename, as_attachment=True)
 
 @app.route('/export/pdf')
 @login_required
