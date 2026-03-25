@@ -11,6 +11,7 @@
                     <i class="fas fa-user-plus text-primary me-2"></i>{{ _('New Client Profile') }}
                 </h5>
                 <form action="{{ url_for('customers') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="mb-3">
                         <label class="form-label text-muted small fw-bold text-uppercase">{{ _('Full Name') }}</label>
                         <input type="text" class="form-control border-0 bg-light py-2" name="name" required placeholder="e.g., Ma Aye Aye">
@@ -76,6 +77,7 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
                                         <form action="/customer/repay/{{ customer.id }}" method="POST">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                             <div class="modal-body px-4">
                                                 <div class="mb-3">
                                                     <label class="form-label fw-bold">{{ _('Transaction Type') }}</label>
