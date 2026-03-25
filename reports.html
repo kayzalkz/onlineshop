@@ -25,6 +25,7 @@
 
 <ul class="nav nav-tabs-scrollable" id="reportTabs" role="tablist">
   <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overview" type="button">Overview & Ledger</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#clientReport" type="button">Client Balances</button></li>
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#pl" type="button">Profit & Loss</button></li>
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#stock" type="button">Inventory Val.</button></li>
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#adjust" type="button">Stock Logs</button></li>
@@ -108,6 +109,74 @@
         </div>
     </div>
 
+    <div class="tab-pane fade" id="clientReport" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+                <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-users me-2 text-primary"></i>Client Financial Report</h6>
+                <div class="d-flex gap-2">
+                    <select id="customerStatusFilter" class="form-select form-select-sm bg-light border-0 fw-bold px-3 py-2" onchange="filterCustomers()">
+                        <option value="all">All Clients</option>
+                        <option value="settled">Settled (Zero Balance)</option>
+                        <option value="debt">Owes Store (Debt)</option>
+                        <option value="credit">Has Store Credit</option>
+                    </select>
+                    <a href="{{ url_for('export_customers_excel') }}" class="btn btn-sm btn-success fw-bold text-nowrap py-2 px-3 shadow-sm">
+                        <i class="fas fa-file-excel me-1"></i> Export Excel
+                    </a>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table ledger-table" style="min-width: 700px;">
+                    <thead>
+                        <tr>
+                            <th>Client Name & ID</th>
+                            <th>Contact</th>
+                            <th class="text-end">Current Balance</th>
+                            <th class="text-end">Status</th>
+                            <th class="text-end">Last Activity / Settled Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customerTableBody">
+                        {% for c in customers %}
+                        {% set status = 'settled' %}
+                        {% if c.balance > 0 %}{% set status = 'debt' %}{% elif c.balance < 0 %}{% set status = 'credit' %}{% endif %}
+                        
+                        <tr class="customer-row" data-status="{{ status }}">
+                            <td>
+                                <div class="fw-bold text-dark">{{ c.name }}</div>
+                                <div class="small text-muted">ID: #{{ c.id }}</div>
+                            </td>
+                            <td class="small">{{ c.phone }}</td>
+                            <td class="text-end fw-bold fs-6">
+                                {% if c.balance > 0 %}
+                                    <span class="text-danger">{{ "{:,.0f}".format(c.balance) }} MMK</span>
+                                {% elif c.balance < 0 %}
+                                    <span class="text-success">{{ "{:,.0f}".format(c.balance|abs) }} MMK</span>
+                                {% else %}
+                                    <span class="text-muted">0.00 MMK</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if c.balance > 0 %}<span class="status-debt">OWES STORE</span>
+                                {% elif c.balance < 0 %}<span class="badge bg-success">STORE CREDIT</span>
+                                {% else %}<span class="status-badge">SETTLED</span>{% endif %}
+                            </td>
+                            <td class="text-end small text-muted">
+                                {% if c.sales %}
+                                    {{ (c.sales|sort(attribute='timestamp', reverse=True)|first).timestamp.strftime('%Y-%m-%d %I:%M %p') }}
+                                {% else %}
+                                    No History
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div class="tab-pane fade" id="pl" role="tabpanel">
         <div class="row g-4 justify-content-center">
             <div class="col-12 col-md-10 col-lg-8">
@@ -178,10 +247,10 @@
 </div>
 
 <script>
+// Filter for Sales Date Range
 function toggleCustomDate() {
     const filter = document.getElementById('dateFilter').value;
     const customDiv = document.getElementById('customDateRange');
-    
     if (filter === 'custom') {
         customDiv.classList.remove('d-none');
         customDiv.classList.add('d-flex');
@@ -196,18 +265,14 @@ function filterTableByDate() {
     const filter = document.getElementById('dateFilter').value;
     const rows = document.getElementsByClassName('sale-row');
     const today = new Date();
-    
     const offset = today.getTimezoneOffset() * 60000;
     const localToday = new Date(today.getTime() - offset);
     const todayString = localToday.toISOString().split('T')[0];
-    
     const firstDayOfWeek = new Date(localToday);
     firstDayOfWeek.setDate(localToday.getDate() - localToday.getDay());
     const firstDayString = firstDayOfWeek.toISOString().split('T')[0];
-
     const currentMonth = localToday.getMonth();
     const currentYear = localToday.getFullYear();
-
     const startInput = document.getElementById('startDate').value;
     const endInput = document.getElementById('endDate').value;
 
@@ -223,9 +288,23 @@ function filterTableByDate() {
         else if (filter === 'custom' && startInput && endInput) {
             showRow = (rowDateStr >= startInput && rowDateStr <= endInput);
         }
-
         row.style.display = showRow ? "" : "none";
     }
+}
+
+// Filter for Customer Status
+function filterCustomers() {
+    const filterValue = document.getElementById('customerStatusFilter').value;
+    const rows = document.querySelectorAll('.customer-row');
+    
+    rows.forEach(row => {
+        const rowStatus = row.getAttribute('data-status');
+        if (filterValue === 'all' || rowStatus === filterValue) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
 }
 </script>
 {% endblock %}
