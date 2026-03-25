@@ -68,6 +68,18 @@ class Supplier(db.Model):
     
     products = db.relationship('Product', backref='supplier', lazy=True)
 
+
+# ---> ဒီ Table အသစ်ကို အောက်မှာ ထပ်တိုးပါ <---
+class SupplierPayment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'), nullable=False)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    payment_method = db.Column(db.String(50)) # cash, kpay, wave
+    reference_note = db.Column(db.String(150)) # e.g., "KBZ Pay Transfer"
+    timestamp = db.Column(db.DateTime, default=get_mmt_time)
+    
+    supplier = db.relationship('Supplier', backref='payments', lazy=True)
+
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150))
@@ -179,6 +191,8 @@ def dashboard():
                            top_customers=top_customers,
                            top_suppliers=top_suppliers,
                            chart_data=chart_data)
+
+
 
 # ==========================================
 # REPORTS ROUTE
@@ -591,14 +605,87 @@ def supplier_pay(supplier_id):
     except:
         amount = Decimal('0')
 
+    payment_method = request.form.get('payment_method', 'cash')
+    reference_note = request.form.get('reference_note', '')
+
     if amount > 0:
+        # ၁။ Supplier ရဲ့ Balance ထဲကနေ နှုတ်မည်
         supplier.balance -= amount
+        
+        # ၂။ Payment မှတ်တမ်းအသစ်ကို Voucher သဘောမျိုး သိမ်းမည်
+        payment = SupplierPayment(
+            supplier_id=supplier.id,
+            amount=amount,
+            payment_method=payment_method,
+            reference_note=reference_note,
+            timestamp=get_mmt_time()
+        )
+        db.session.add(payment)
         db.session.commit()
         flash(f'Payment of {amount:,.0f} MMK recorded for {supplier.name}.', 'success')
     else:
         flash('Invalid payment amount.', 'danger')
 
     return redirect(url_for('suppliers'))
+
+@app.route('/supplier/<int:supplier_id>')
+@login_required
+def supplier_detail(supplier_id):
+    supplier = Supplier.query.get_or_404(supplier_id)
+    
+    # ၁။ Supplier ဆီက မှာယူခဲ့သမျှ PO များ
+    pos = PurchaseOrder.query.filter_by(supplier_id=supplier_id, status='Received').all()
+    # ၂။ Supplier ကို ငွေပြန်ဆပ်ခဲ့သမျှ မှတ်တမ်းများ
+    payments = SupplierPayment.query.filter_by(supplier_id=supplier_id).all()
+    
+    # ၃။ PO နှင့် Payment များကို တစ်ခုတည်းဖြစ်အောင် ပေါင်းပြီး ရက်စွဲအလိုက် စီမည်
+    combined = []
+    for po in pos:
+        combined.append({
+            'date': po.timestamp,
+            'ref': f"PO#{po.id}",
+            'desc': f"Stock In: {sum(i.quantity for i in po.items)} items",
+            'debit': po.total_amount, # ဆိုင်က ပေးရန်တိုးလာခြင်း
+            'credit': Decimal('0')
+        })
+        
+    for p in payments:
+        combined.append({
+            'date': p.timestamp,
+            'ref': f"PAY#{p.id}",
+            'desc': f"Payment ({p.payment_method.upper()}) - {p.reference_note}",
+            'debit': Decimal('0'),
+            'credit': p.amount # ဆိုင်က ပြန်ဆပ်လိုက်ခြင်း
+        })
+        
+    # ရက်စွဲအလိုက် အဟောင်းမှ အသစ်သို့ စီစဉ်မည်
+    combined.sort(key=lambda x: x['date'])
+    
+    statement_data = []
+    current_running_bal = Decimal('0')
+    total_ordered = Decimal('0')
+    
+    for item in combined:
+        current_running_bal += item['debit']
+        current_running_bal -= item['credit']
+        total_ordered += item['debit']
+        
+        statement_data.append({
+            'date': item['date'],
+            'ref': item['ref'],
+            'desc': item['desc'],
+            'debit': item['debit'],
+            'credit': item['credit'],
+            'running_bal': current_running_bal
+        })
+        
+    statement_data.reverse() # အသစ်ဆုံးကို အပေါ်မှာပြရန်
+    
+    return render_template('supplier_detail.html', 
+                           supplier=supplier, 
+                           history=statement_data, 
+                           total_ordered=total_ordered,
+                           now=get_mmt_time())
 
 # ==========================================
 # MANAGEMENT ROUTES
