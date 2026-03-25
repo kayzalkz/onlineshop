@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block page_title %}Client Ledger: {{ customer.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{{ url_for('customers') }}" class="btn btn-light shadow-sm fw-bold"><i class="fas fa-arrow-left me-2"></i>Back to Clients</a>
+    <button onclick="window.print()" class="btn btn-primary fw-bold shadow-sm"><i class="fas fa-print me-2"></i>Print Statement</button>
+</div>
+
+<div class="row g-3 g-md-4 mb-4">
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 border-start border-primary border-4">
+            <h6 class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px;">Client Profile</h6>
+            <h4 class="fw-bold text-dark mb-1">{{ customer.name }}</h4>
+            <p class="text-muted mb-0 small"><i class="fas fa-phone me-2"></i>{{ customer.phone }}</p>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 border-start border-success border-4">
+            <h6 class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px;">Lifetime Value (Total Spent)</h6>
+            <h3 class="fw-bold text-success mb-0">{{ "{:,.0f}".format(total_spent) }} <span class="fs-6 text-muted fw-normal">MMK</span></h3>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 border-start {% if customer.balance > 0 %}border-danger{% elif customer.balance < 0 %}border-warning{% else %}border-secondary{% endif %} border-4">
+            <h6 class="text-muted fw-bold text-uppercase mb-1" style="font-size: 11px;">Current Account Balance</h6>
+            {% if customer.balance > 0 %}
+                <h3 class="fw-bold text-danger mb-0">{{ "{:,.0f}".format(customer.balance) }} <span class="fs-6 text-muted fw-normal">MMK (Debt)</span></h3>
+            {% elif customer.balance < 0 %}
+                <h3 class="fw-bold text-warning text-dark mb-0">{{ "{:,.0f}".format(customer.balance|abs) }} <span class="fs-6 text-muted fw-normal">MMK (Credit)</span></h3>
+            {% else %}
+                <h3 class="fw-bold text-secondary mb-0">0 <span class="fs-6 text-muted fw-normal">MMK (Settled)</span></h3>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4 bg-white p-0 overflow-hidden">
+    <div class="card-header bg-light border-bottom p-4">
+        <h6 class="fw-bold text-dark mb-0"><i class="fas fa-history text-muted me-2"></i>Detailed Transaction History</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="min-width: 800px;">
+            <thead class="bg-white">
+                <tr>
+                    <th class="text-muted small text-uppercase py-3 ps-4">Date & Time</th>
+                    <th class="text-muted small text-uppercase py-3">Ref / Type</th>
+                    <th class="text-muted small text-uppercase py-3">Items</th>
+                    <th class="text-muted small text-uppercase py-3 text-end">Invoice Total</th>
+                    <th class="text-muted small text-uppercase py-3 text-end">Amount Paid</th>
+                    <th class="text-muted small text-uppercase py-3 text-center pe-4">Method</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in history %}
+                <tr>
+                    <td class="ps-4 small">{{ sale.timestamp.strftime('%d %b, %Y %I:%M %p') }}</td>
+                    <td>
+                        {% if sale.total_amount == 0 %}
+                            <span class="badge bg-primary bg-opacity-10 text-primary px-3 rounded-pill">Debt Repayment</span>
+                        {% else %}
+                            <span class="fw-bold text-muted">Order #{{ sale.id }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if sale.items %}
+                            {% for item in sale.items %}
+                                <div class="small text-muted">{{ item.product_name }} (x{{ item.quantity }})</div>
+                            {% endfor %}
+                        {% else %}
+                            <span class="small text-muted fst-italic">{{ sale.payment_info or 'Account Adjustment' }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end fw-bold text-dark">{{ "{:,.0f}".format(sale.total_amount) }}</td>
+                    <td class="text-end fw-bold text-success">{{ "{:,.0f}".format(sale.amount_paid) }}</td>
+                    <td class="text-center pe-4 text-uppercase small fw-bold text-muted">{{ sale.payment_method }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center text-muted py-5">No transaction history found for this client.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
