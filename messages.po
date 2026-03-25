@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-25 16:46+0630\n"
-"PO-Revision-Date: 2026-03-25 16:48+0630\n"
+"POT-Creation-Date: 2026-03-25 22:25+0630\n"
+"PO-Revision-Date: 2026-03-25 22:25+0630\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: my\n"
 "Language-Team: my <LL@li.org>\n"
@@ -18,144 +18,162 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app.py:253
+#: app.py:48
+msgid "Access Denied. You do not have permission to view this page."
+msgstr "ဝင်ရောက်ခွင့် ငြင်းပယ်ခံရသည်။ ဤစာမျက်နှာကို ကြည့်ရှုရန် သင့်တွင် ခွင့်ပြုချက် မရှိပါ။"
+
+#: app.py:236
 msgid "Cart is empty!"
-msgstr "ဈေးဝယ်ခြင်းထဲတွင် ဘာမှမရှိပါ!"
+msgstr "ဈေးခြင်းတောင်းထဲတွင် ဘာမှမရှိပါ!"
 
-#: app.py:316
+#: app.py:289
 msgid "Transaction processed successfully!"
-msgstr "ငွေပေးချေမှု အောင်မြင်စွာ လုပ်ဆောင်ပြီးပါပြီ!"
+msgstr "ငွေပေးချေမှု အောင်မြင်စွာ ပြီးမြောက်ပါပြီ!"
 
-#: app.py:337
+#: app.py:308
 #, python-brace-format
 msgid "Editing Sale #{}. Original record is safe until you click Complete."
-msgstr "အရောင်းပြေစာ #{} ကို ပြင်ဆင်နေသည်။ အတည်ပြုခလုတ်မနှိပ်မချင်း မူလမှတ်တမ်းကို ထိခိုက်မည်မဟုတ်ပါ။"
+msgstr "အရောင်းအမှတ် #{} ကို ပြင်ဆင်နေသည်။ ပြီးစီးမည်ကို မနှိပ်မချင်း မူရင်းမှတ်တမ်းကို သိမ်းဆည်းထားမည်ဖြစ်သည်။"
 
-#: app.py:347
-msgid "Edit cancelled. The original sale remains unchanged."
-msgstr "ပြင်ဆင်မှု ပယ်ဖျက်လိုက်ပါသည်။ မူလအရောင်းမှတ်တမ်း ပြောင်းလဲမည်မဟုတ်ပါ။"
+#: app.py:318
+msgid "Edit cancelled."
+msgstr "ပြင်ဆင်ခြင်းကို ပယ်ဖျက်လိုက်ပါပြီ။"
 
-#: app.py:365
-msgid "Sale permanently voided and stock restored."
-msgstr "အရောင်းမှတ်တမ်းကို အပြီးတိုင်ပယ်ဖျက်လိုက်ပြီး ကုန်လက်ကျန်များ ပြန်လည်ဖြည့်တင်းပြီးပါပြီ။"
+#: app.py:337
+msgid "Sale voided and stock restored."
+msgstr "အရောင်းကို ပယ်ဖျက်လိုက်ပြီး ကုန်လက်ကျန်ကို ပြန်လည်ဖြည့်တင်းလိုက်ပါပြီ။"
 
-#: app.py:396
-msgid "Invalid Purchase Order data."
-msgstr "ကုန်ပစ္စည်းမှာယူမှု (PO) အချက်အလက် မှားယွင်းနေပါသည်။"
-
-#: app.py:418
-#, python-brace-format
-msgid "Purchase Order #{} created successfully."
-msgstr "ကုန်ပစ္စည်းမှာယူမှု PO #{} ကို အောင်မြင်စွာ ဖန်တီးပြီးပါပြီ။"
-
-#: app.py:444
-msgid "Goods received! Inventory stock and supplier balances have been updated."
-msgstr "ပစ္စည်းများ လက်ခံရရှိပါပြီ! ကုန်လက်ကျန်နှင့် ပစ္စည်းသွင်းသူ၏ ငွေစာရင်းများကို အပ်ဒိတ်လုပ်ပြီးပါပြီ။"
-
-#: app.py:455
-#, python-brace-format
-msgid "Purchase Order #{} cancelled."
-msgstr "ကုန်ပစ္စည်းမှာယူမှု PO #{} ကို ပယ်ဖျက်လိုက်ပါသည်။"
-
-#: app.py:500
+#: app.py:429
 msgid "Product added successfully."
 msgstr "ကုန်ပစ္စည်း အသစ်ထည့်သွင်းခြင်း အောင်မြင်ပါသည်။"
 
-#: app.py:502
-msgid "Error: Invalid numbers entered for price or stock."
-msgstr "အမှား - ဈေးနှုန်း (သို့) အရေအတွက် နေရာတွင် ဂဏန်းများ မှားယွင်းနေပါသည်။"
+#: app.py:431 app.py:442
+msgid "Invalid numbers."
+msgstr "ဂဏန်းများ မှားယွင်းနေပါသည်။"
 
-#: app.py:515
-msgid "Product updated successfully."
-msgstr "ကုန်ပစ္စည်း အချက်အလက် ပြင်ဆင်ခြင်း အောင်မြင်ပါသည်။"
+#: app.py:440
+msgid "Product updated."
+msgstr "ကုန်ပစ္စည်း အချက်အလက်များကို ပြင်ဆင်ပြီးပါပြီ။"
 
-#: app.py:517
-msgid "Error: Invalid numbers entered for price."
-msgstr "အမှား - ဈေးနှုန်း နေရာတွင် ဂဏန်းများ မှားယွင်းနေပါသည်။"
+#: app.py:449
+msgid "Product deleted."
+msgstr "ကုန်ပစ္စည်းကို ဖျက်လိုက်ပါပြီ။"
 
-#: app.py:526
-msgid "Product permanently deleted."
-msgstr "ကုန်ပစ္စည်းကို အပြီးတိုင် ဖျက်လိုက်ပါပြီ။"
+#: app.py:458
+msgid "Stock adjusted."
+msgstr "ကုန်လက်ကျန်ကို ညှိနှိုင်းပြင်ဆင်လိုက်ပါပြီ။"
 
-#: app.py:538
-msgid "Stock adjusted successfully."
-msgstr "ကုန်လက်ကျန် အရေအတွက် ပြင်ဆင်ခြင်း အောင်မြင်ပါသည်။"
+#: app.py:460
+msgid "Invalid adjustment."
+msgstr "ညှိနှိုင်းပြင်ဆင်မှု မှားယွင်းနေပါသည်။"
+
+#: app.py:493
+msgid "Purchase Order created."
+msgstr "အဝယ်အော်ဒါ (PO) ဖန်တီးပြီးပါပြီ။"
+
+#: app.py:508
+msgid "Goods received!"
+msgstr "ကုန်ပစ္စည်းများ လက်ခံရရှိပါပြီ!"
+
+#: app.py:519
+msgid "Purchase Order cancelled."
+msgstr "အဝယ်အော်ဒါ (PO) ကို ပယ်ဖျက်လိုက်ပါပြီ။"
+
+#: app.py:530
+msgid "Supplier registered."
+msgstr "ကုန်ပေးသွင်းသူကို စာရင်းသွင်းပြီးပါပြီ။"
+
+#: app.py:535
+msgid "Supplier updated."
+msgstr "ကုန်ပေးသွင်းသူ အချက်အလက်ကို ပြင်ဆင်ပြီးပါပြီ။"
 
 #: app.py:540
-msgid "Error: Please enter a valid whole number for stock adjustments."
-msgstr "အမှား - ကုန်လက်ကျန် ပြင်ဆင်ရန်အတွက် မှန်ကန်သော ကိန်းပြည့်ဂဏန်းကို ထည့်သွင်းပါ။"
+msgid "Error: Cannot delete this supplier. Has existing records."
+msgstr "အမှား - ဤကုန်ပေးသွင်းသူကို ဖျက်၍မရပါ။ မှတ်တမ်းဟောင်းများ ရှိနေပါသည်။"
 
-#: app.py:580
-msgid "Supplier registered successfully."
-msgstr "ပစ္စည်းသွင်းသူ မှတ်ပုံတင်ခြင်း အောင်မြင်ပါသည်။"
+#: app.py:544
+msgid "Supplier removed."
+msgstr "ကုန်ပေးသွင်းသူကို ဖယ်ရှားလိုက်ပါပြီ။"
 
-#: app.py:589
-msgid "Supplier details updated."
-msgstr "ပစ္စည်းသွင်းသူ အချက်အလက်များ ပြင်ဆင်ပြီးပါပြီ။"
+#: app.py:646
+msgid "Role created."
+msgstr "ရာထူးအသစ် ဖန်တီးပြီးပါပြီ။"
 
-#: app.py:598
-msgid "Supplier removed from system."
-msgstr "ပစ္စည်းသွင်းသူကို စနစ်ထဲမှ ပယ်ဖျက်လိုက်ပါပြီ။"
+#: app.py:656
+msgid "Role updated."
+msgstr "ရာထူးကို ပြင်ဆင်ပြီးပါပြီ။"
 
-#: app.py:703
-msgid "Store Configuration Updated"
-msgstr "ဆိုင်အချက်အလက်များကို ပြင်ဆင်ပြီးပါပြီ"
+#: app.py:660
+msgid "Cannot delete role. Users are assigned."
+msgstr "ရာထူးကို ဖျက်၍မရပါ။ အသုံးပြုသူများကို သတ်မှတ်ပေးထားပါသည်။"
 
-#: app.py:721
+#: app.py:663
+msgid "Role deleted."
+msgstr "ရာထူးကို ဖျက်လိုက်ပါပြီ။"
+
+#: app.py:676
 msgid "Staff account created."
 msgstr "ဝန်ထမ်းအကောင့် ဖွင့်လှစ်ပြီးပါပြီ။"
 
-#: app.py:733
-msgid "User account updated successfully."
-msgstr "အသုံးပြုသူအကောင့် ပြင်ဆင်ခြင်း အောင်မြင်ပါသည်။"
+#: app.py:682
+msgid "User updated."
+msgstr "အသုံးပြုသူအချက်အလက် ပြင်ဆင်ပြီးပါပြီ။"
 
-#: app.py:740
-msgid "User account permanently deleted."
-msgstr "အသုံးပြုသူအကောင့်ကို အပြီးတိုင် ဖျက်လိုက်ပါပြီ။"
+#: app.py:687
+msgid "User deleted."
+msgstr "အသုံးပြုသူကို ဖျက်လိုက်ပါပြီ။"
 
-#: templates/base.html:30
+#: app.py:705
+msgid "Store Configuration Updated"
+msgstr "ဆိုင်အချက်အလက်များကို ပြင်ဆင်သတ်မှတ်ပြီးပါပြီ"
+
+#: templates/base.html:31
 msgid "Dashboard"
-msgstr "အဓိကစာမျက်နှာ"
+msgstr "ဒက်ရှ်ဘုတ်"
 
-#: templates/base.html:33
+#: templates/base.html:36
 msgid "Point of Sale"
 msgstr "အရောင်းကောင်တာ (POS)"
 
-#: templates/base.html:36
-msgid "Inventory"
-msgstr "ကုန်လက်ကျန်"
-
 #: templates/base.html:39
-msgid "Suppliers"
-msgstr "ပစ္စည်းသွင်းသူများ"
-
-#: templates/base.html:42
-msgid "Purchase Orders"
-msgstr "ကုန်ပစ္စည်း မှာယူမှုများ (PO)"
-
-#: templates/base.html:45
 msgid "VIP Clients"
 msgstr "VIP ဖောက်သည်များ"
 
-#: templates/base.html:48
+#: templates/base.html:45
+msgid "Inventory"
+msgstr "ကုန်ပစ္စည်းလက်ကျန်"
+
+#: templates/base.html:51
+msgid "Suppliers"
+msgstr "ကုန်ပေးသွင်းသူများ"
+
+#: templates/base.html:54
+msgid "Purchase Orders"
+msgstr "အဝယ်အော်ဒါများ (PO)"
+
+#: templates/base.html:60
 msgid "Reports"
 msgstr "အစီရင်ခံစာများ"
 
-#: templates/base.html:54
+#: templates/base.html:68
 msgid "Store Setup"
-msgstr "ဆိုင် အပြင်အဆင်"
+msgstr "ဆိုင်ပြင်ဆင်မှုများ"
 
-#: templates/base.html:57
+#: templates/base.html:71
 msgid "Staff"
 msgstr "ဝန်ထမ်းများ"
 
+#: templates/base.html:74
+msgid "Roles & Security"
+msgstr "ရာထူးများနှင့် လုံခြုံရေး"
+
 #: templates/customers.html:3
 msgid "VIP Clients & Ledger"
-msgstr "VIP ဖောက်သည်များနှင့် ငွေစာရင်း"
+msgstr "VIP ဖောက်သည်များနှင့် စာရင်း"
 
 #: templates/customers.html:11
 msgid "New Client Profile"
-msgstr "ဖောက်သည်အသစ် စာရင်းသွင်းရန်"
+msgstr "ဖောက်သည်အသစ် မှတ်တမ်း"
 
 #: templates/customers.html:15
 msgid "Full Name"
@@ -167,7 +185,7 @@ msgstr "ဖုန်းနံပါတ်"
 
 #: templates/customers.html:22
 msgid "Save Client"
-msgstr "ဖောက်သည်မှတ်တမ်း သိမ်းမည်"
+msgstr "ဖောက်သည်ကို မှတ်သားမည်"
 
 #: templates/customers.html:35
 msgid "Client"
@@ -179,7 +197,7 @@ msgstr "ဆက်သွယ်ရန်"
 
 #: templates/customers.html:37
 msgid "Balance (MMK)"
-msgstr "လက်ကျန်ငွေ (ကျပ်)"
+msgstr "လက်ကျန်ငွေ (MMK)"
 
 #: templates/customers.html:38
 msgid "Action"
@@ -187,84 +205,80 @@ msgstr "လုပ်ဆောင်ချက်"
 
 #: templates/customers.html:51
 msgid "Owes Store"
-msgstr "ပေးရန်ကျန်ငွေ"
+msgstr "အကြွေး (ဆိုင်သို့ပေးရန်)"
 
 #: templates/customers.html:53
 msgid "Store Credit"
-msgstr "ကြိုတင်ငွေ (Credit)"
-
-#: templates/customers.html:60
-msgid "Settle"
-msgstr "ငွေရှင်းမည်"
-
-#: templates/customers.html:69
-msgid "Settle Balance"
-msgstr "လက်ကျန်ငွေ ရှင်းလင်းရန်"
+msgstr "ပိုငွေ (Store Credit)"
 
 #: templates/customers.html:75
+msgid "Settle Balance"
+msgstr "စာရင်းရှင်းမည်"
+
+#: templates/customers.html:81
 msgid "Transaction Type"
 msgstr "ငွေပေးချေမှု အမျိုးအစား"
 
-#: templates/customers.html:77
-msgid "Receive Debt Payment"
-msgstr "အကြွေးဆပ်ငွေ လက်ခံရန်"
-
-#: templates/customers.html:78
-msgid "Add Prepaid Store Credit"
-msgstr "ကြိုတင်ငွေ (Credit) ထည့်သွင်းရန်"
-
 #: templates/customers.html:83
+msgid "Receive Debt Payment"
+msgstr "အကြွေးဆပ်ငွေ လက်ခံရယူရန်"
+
+#: templates/customers.html:84
+msgid "Add Prepaid Store Credit"
+msgstr "ကြိုတင်ငွေ (Store Credit) ထည့်ရန်"
+
+#: templates/customers.html:89
 msgid "Amount (MMK)"
-msgstr "ပမာဏ (ကျပ်)"
+msgstr "ပမာဏ (MMK)"
 
-#: templates/customers.html:88
+#: templates/customers.html:94
 msgid "Payment Method"
-msgstr "ငွေပေးချေမည့်စနစ်"
+msgstr "ငွေပေးချေမည့် နည်းလမ်း"
 
-#: templates/customers.html:98 templates/customers.html:99
+#: templates/customers.html:104 templates/customers.html:105
 #: templates/inventory.html:154
 msgid "Cancel"
 msgstr "ပယ်ဖျက်မည်"
 
-#: templates/customers.html:100
+#: templates/customers.html:106
 msgid "Process Payment"
-msgstr "ငွေပေးချေမှု လုပ်ဆောင်မည်"
+msgstr "ငွေပေးချေမှုကို လုပ်ဆောင်မည်"
 
-#: templates/customers.html:110
+#: templates/customers.html:116
 msgid "No VIP clients found in the ledger."
-msgstr "ငွေစာရင်းထဲတွင် VIP ဖောက်သည်များ မရှိသေးပါ။"
+msgstr "မှတ်တမ်းထဲတွင် VIP ဖောက်သည်များ မတွေ့ပါ။"
 
 #: templates/dashboard.html:2
 msgid "Executive Dashboard"
-msgstr "အဓိက စီမံခန့်ခွဲမှု မျက်နှာပြင်"
+msgstr "အမှုဆောင် ဒက်ရှ်ဘုတ်"
 
 #: templates/dashboard.html:28
 msgid "Overview"
-msgstr "အနှစ်ချုပ်"
+msgstr "အကျဉ်းချုပ်"
 
 #: templates/dashboard.html:29
 msgid "Here's your store's performance at a glance."
-msgstr "သင့်ဆိုင်ရဲ့ လုပ်ငန်းဆောင်ရွက်မှု အခြေအနေများကို အကျဉ်းချုပ်ကြည့်ရှုပါ။"
+msgstr "သင့်ဆိုင်၏ လုပ်ငန်းဆောင်ရွက်မှု အခြေအနေများကို တစ်ချက်ကြည့်လိုက်ပါ။"
 
 #: templates/dashboard.html:42
 msgid "Today's Revenue"
-msgstr "ယနေ့ ရောင်းရငွေ"
+msgstr "ယနေ့ ဝင်ငွေ"
 
 #: templates/dashboard.html:54
 msgid "Inventory On Hand"
-msgstr "လက်ကျန် ကုန်ပစ္စည်း"
+msgstr "လက်ရှိ ကုန်ပစ္စည်းလက်ကျန်"
 
 #: templates/dashboard.html:66
 msgid "Accounts Receivable"
-msgstr "ရရန်ရှိသော ငွေစာရင်း (Customer အကြွေး)"
+msgstr "ရရန်ရှိသော ငွေစာရင်း"
 
 #: templates/dashboard.html:79
 msgid "Accounts Payable"
-msgstr "ပေးရန်ရှိသော ငွေစာရင်း (Supplier အကြွေး)"
+msgstr "ပေးရန်ရှိသော ငွေစာရင်း"
 
 #: templates/dashboard.html:92
 msgid "Gross Volume (7 Days)"
-msgstr "စုစုပေါင်း ရောင်းရငွေ (၇ ရက်အတွင်း)"
+msgstr "ရောင်းအား စုစုပေါင်း (၇ ရက်)"
 
 #: templates/dashboard.html:99
 msgid "Quick Actions"
@@ -272,36 +286,36 @@ msgstr "အမြန် လုပ်ဆောင်ချက်များ"
 
 #: templates/dashboard.html:115
 msgid "Top Selling Items"
-msgstr "အရောင်းရဆုံး ပစ္စည်းများ"
+msgstr "အရောင်းရဆုံး ကုန်ပစ္စည်းများ"
 
 #: templates/dashboard.html:134
 msgid "Top VIP Clients"
-msgstr "အကောင်းဆုံး VIP ဖောက်သည်များ"
+msgstr "ထိပ်တန်း VIP ဖောက်သည်များ"
 
 #: templates/dashboard.html:141
 msgid "Top Suppliers"
-msgstr "အဓိက ပစ္စည်းသွင်းသူများ"
+msgstr "ထိပ်တန်း ကုန်ပေးသွင်းသူများ"
 
 #: templates/inventory.html:2
 msgid "Inventory Management"
-msgstr "ကုန်လက်ကျန် စီမံခန့်ခွဲမှု"
+msgstr "ကုန်ပစ္စည်းလက်ကျန် စီမံခန့်ခွဲမှု"
 
 #: templates/inventory.html:7
 msgid "Product Master List"
-msgstr "ကုန်ပစ္စည်း စာရင်း"
+msgstr "ကုန်ပစ္စည်း ပင်မစာရင်း"
 
 #: templates/inventory.html:9
 msgid "Add New Item"
-msgstr "ပစ္စည်းအသစ် ထည့်မည်"
+msgstr "ကုန်ပစ္စည်းအသစ် ထည့်မည်"
 
 #: templates/inventory.html:17
 msgid "Item Name & Specs"
-msgstr "ပစ္စည်းအမည်နှင့် အချက်အလက်များ"
+msgstr "အမည်နှင့် အသေးစိတ်"
 
 #: templates/inventory.html:18 templates/inventory.html:78
 #: templates/inventory.html:181
 msgid "Supplier"
-msgstr "ပစ္စည်းသွင်းသူ"
+msgstr "ကုန်ပေးသွင်းသူ"
 
 #: templates/inventory.html:19
 msgid "Purchase Cost"
@@ -313,19 +327,19 @@ msgstr "ရောင်းဈေး"
 
 #: templates/inventory.html:21
 msgid "Margin"
-msgstr "အမြတ်ရာခိုင်နှုန်း"
+msgstr "အမြတ်"
 
 #: templates/inventory.html:22
 msgid "Stock"
 msgstr "လက်ကျန်"
 
-#: templates/inventory.html:23 templates/users.html:45
+#: templates/inventory.html:23
 msgid "Actions"
 msgstr "လုပ်ဆောင်ချက်များ"
 
 #: templates/inventory.html:58
 msgid "Stock In/Out"
-msgstr "အသွင်း/အထုတ်"
+msgstr "အဝင်/အထွက်"
 
 #: templates/inventory.html:59
 msgid "Edit"
@@ -337,7 +351,7 @@ msgstr "ဖျက်မည်"
 
 #: templates/inventory.html:69
 msgid "Edit Product"
-msgstr "ပစ္စည်းအချက်အလက် ပြင်ရန်"
+msgstr "ကုန်ပစ္စည်းကို ပြင်မည်"
 
 #: templates/inventory.html:74
 msgid "Name"
@@ -357,11 +371,11 @@ msgstr "အရောင်"
 
 #: templates/inventory.html:111 templates/inventory.html:217
 msgid "Cost (MMK)"
-msgstr "ဝယ်ရင်းဈေး (ကျပ်)"
+msgstr "ဝယ်ရင်းဈေး (MMK)"
 
 #: templates/inventory.html:115 templates/inventory.html:221
 msgid "Sell (MMK)"
-msgstr "ရောင်းဈေး (ကျပ်)"
+msgstr "ရောင်းဈေး (MMK)"
 
 #: templates/inventory.html:120
 msgid "Save Changes"
@@ -369,19 +383,19 @@ msgstr "ပြင်ဆင်မှုများကို သိမ်းမ�
 
 #: templates/inventory.html:130
 msgid "Adjust"
-msgstr "အရေအတွက် ပြင်မည်"
+msgstr "ညှိနှိုင်းမည်"
 
 #: templates/inventory.html:134
 msgid "Use positive (+) to add, negative (-) to remove."
-msgstr "အပေါင်း (+) ပြလျှင် အရေအတွက်တိုးမည်၊ အနှုတ် (-) ပြလျှင် လျော့မည်။"
+msgstr "အပေါင်း (+) ကိုသုံး၍ ပေါင်းထည့်ပါ၊ အနှုတ် (-) ကိုသုံး၍ ဖယ်ရှားပါ။"
 
 #: templates/inventory.html:136
 msgid "Reason (e.g. Delivery)"
-msgstr "အကြောင်းရင်း (ဥပမာ - ပစ္စည်းရောက်)"
+msgstr "အကြောင်းရင်း (ဥပမာ - ကုန်အဝင်)"
 
 #: templates/inventory.html:138
 msgid "Update Inventory"
-msgstr "ကုန်လက်ကျန် အပ်ဒိတ်လုပ်မည်"
+msgstr "ကုန်လက်ကျန်ကို အပ်ဒိတ်လုပ်မည်"
 
 #: templates/inventory.html:150
 msgid "Delete Item?"
@@ -389,15 +403,15 @@ msgstr "ပစ္စည်းကို ဖျက်မည်လား?"
 
 #: templates/inventory.html:153
 msgid "Yes, Delete"
-msgstr "ဖျက်မည်"
+msgstr "ဟုတ်ကဲ့၊ ဖျက်ပါ"
 
 #: templates/inventory.html:170
 msgid "Register New Item"
-msgstr "ပစ္စည်းအသစ် စာရင်းသွင်းရန်"
+msgstr "ကုန်ပစ္စည်းအသစ် စာရင်းသွင်းမည်"
 
 #: templates/inventory.html:175
 msgid "Item Name / Code"
-msgstr "ပစ္စည်းအမည် / ကုဒ်"
+msgstr "ကုန်ပစ္စည်း အမည် / ကုဒ်"
 
 #: templates/inventory.html:199
 msgid "Free"
@@ -405,29 +419,29 @@ msgstr "Free Size"
 
 #: templates/inventory.html:227
 msgid "Initial Stock"
-msgstr "အစပြု ကုန်လက်ကျန်"
+msgstr "အစဦး လက်ကျန်"
 
 #: templates/inventory.html:232
 msgid "Save Item"
-msgstr "ပစ္စည်းသိမ်းမည်"
+msgstr "ပစ္စည်းကို သိမ်းမည်"
 
 #: templates/login.html:6
 msgid "Login"
-msgstr "အကောင့်ဝင်ရန်"
+msgstr "အကောင့်ဝင်မည်"
 
 #: templates/login.html:30
 msgid "System Login"
-msgstr "စနစ်ထဲသို့ ဝင်ရောက်ရန်"
+msgstr "စနစ်ထဲသို့ ဝင်မည်"
 
 #: templates/login.html:32
 msgid "Enter your credentials to access the terminal."
-msgstr "စနစ်ကို အသုံးပြုရန် သင့်အချက်အလက်များကို ထည့်သွင်းပါ။"
+msgstr "စနစ်ထဲသို့ ဝင်ရောက်ရန် သင့်အချက်အလက်များကို ထည့်ပါ။"
 
-#: templates/login.html:45 templates/users.html:15 templates/users.html:43
+#: templates/login.html:45
 msgid "Username"
 msgstr "အသုံးပြုသူအမည်"
 
-#: templates/login.html:52 templates/users.html:19
+#: templates/login.html:52
 msgid "Password"
 msgstr "စကားဝှက်"
 
@@ -437,7 +451,7 @@ msgstr "အကောင့်ဝင်မည်"
 
 #: templates/pos.html:2
 msgid "Register / Checkout"
-msgstr "အရောင်း / ငွေရှင်းကောင်တာ"
+msgstr "ငွေရှင်းကောင်တာ / အရောင်းစာရင်း"
 
 #: templates/pos.html:58
 msgid "Search items..."
@@ -445,7 +459,7 @@ msgstr "ပစ္စည်းများကို ရှာဖွေပါ..."
 
 #: templates/pos.html:94
 msgid "Current Order"
-msgstr "လက်ရှိမှာယူမှု"
+msgstr "လက်ရှိအော်ဒါ"
 
 #: templates/pos.html:100
 msgid "Tap an item to add to bag"
@@ -453,11 +467,11 @@ msgstr "ဈေးခြင်းတောင်းထဲထည့်ရန် �
 
 #: templates/pos.html:110
 msgid "TOTAL DUE:"
-msgstr "ကျသင့်ငွေ စုစုပေါင်း -"
+msgstr "ကျသင့်ငွေ -"
 
 #: templates/pos.html:125
 msgid "AMOUNT TENDERED"
-msgstr "ပေးငွေ"
+msgstr "ပေးသွင်းငွေ"
 
 #: templates/pos.html:144
 msgid "COMPLETE SALE"
@@ -465,15 +479,15 @@ msgstr "ငွေရှင်းမည်"
 
 #: templates/profile.html:3
 msgid "Store Configuration"
-msgstr "ဆိုင် အပြင်အဆင်"
+msgstr "ဆိုင်ပြင်ဆင်မှုများ"
 
 #: templates/profile.html:21
 msgid "Update Store Logo"
-msgstr "ဆိုင် Logo ပြောင်းရန်"
+msgstr "ဆိုင်လိုဂိုကို ပြောင်းမည်"
 
 #: templates/profile.html:23
 msgid "Recommended size: 300x300px (PNG or JPG)"
-msgstr "အကြံပြုထားသော အရွယ်အစား - 300x300px (PNG သို့ JPG)"
+msgstr "အကြံပြုထားသော အရွယ်အစား - 300x300px (PNG သို့မဟုတ် JPG)"
 
 #: templates/profile.html:27
 msgid "Store Name"
@@ -481,7 +495,7 @@ msgstr "ဆိုင်အမည်"
 
 #: templates/profile.html:32
 msgid "Official Phone"
-msgstr "ဖုန်းနံပါတ်"
+msgstr "တရားဝင် ဖုန်းနံပါတ်"
 
 #: templates/profile.html:37
 msgid "Store Address"
@@ -489,352 +503,16 @@ msgstr "ဆိုင်လိပ်စာ"
 
 #: templates/profile.html:41
 msgid "Save Configuration"
-msgstr "အပြင်အဆင်များကို သိမ်းမည်"
+msgstr "ပြင်ဆင်မှုများကို သိမ်းမည်"
 
 #: templates/purchase_orders.html:3
 msgid "Purchase Orders (PO)"
-msgstr "ကုန်ပစ္စည်း မှာယူမှုများ (PO)"
+msgstr "အဝယ်အော်ဒါများ (PO)"
 
 #: templates/reports.html:2
 msgid "Financial Reports & Ledgers"
-msgstr "ဘဏ္ဍာရေး အစီရင်ခံစာများနှင့် ငွေစာရင်းများ"
+msgstr "ဘဏ္ဍာရေး အစီရင်ခံစာများနှင့် စာရင်းများ"
 
-#: templates/suppliers.html:3
+#: templates/suppliers.html:2
 msgid "Suppliers & Accounts Payable"
-msgstr "ပစ္စည်းသွင်းသူများနှင့် ပေးရန်ရှိသော ငွေစာရင်း"
-
-#: templates/users.html:3
-msgid "User Management"
-msgstr "အသုံးပြုသူများ စီမံခန့်ခွဲမှု"
-
-#: templates/users.html:10
-msgid "Create Staff Account"
-msgstr "ဝန်ထမ်းအကောင့် အသစ်ဖွင့်ရန်"
-
-#: templates/users.html:23 templates/users.html:44
-msgid "Role"
-msgstr "ရာထူး"
-
-#: templates/users.html:25
-msgid "Cashier"
-msgstr "ငွေရှင်းစာရေး (Cashier)"
-
-#: templates/users.html:26
-msgid "Manager"
-msgstr "မန်နေဂျာ (Manager)"
-
-#: templates/users.html:27
-msgid "Admin"
-msgstr "အက်ဒမင် (Admin)"
-
-#: templates/users.html:30
-msgid "Create Account"
-msgstr "အကောင့်ဖွင့်မည်"
-
-#: venv/lib/python3.13/site-packages/click/_termui_impl.py:613
-#, python-brace-format
-msgid "{editor}: Editing failed"
-msgstr "{editor}: ပြင်ဆင်မှု မအောင်မြင်ပါ"
-
-#: venv/lib/python3.13/site-packages/click/_termui_impl.py:617
-#, python-brace-format
-msgid "{editor}: Editing failed: {e}"
-msgstr "{editor}: ပြင်ဆင်မှု မအောင်မြင်ပါ - {e}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1114
-#: venv/lib/python3.13/site-packages/click/core.py:1151
-#, python-brace-format
-msgid "{text} {deprecated_message}"
-msgstr "{text} {deprecated_message}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1170
-msgid "Options"
-msgstr "ရွေးချယ်စရာများ"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1245
-#, python-brace-format
-msgid "Got unexpected extra argument ({args})"
-msgid_plural "Got unexpected extra arguments ({args})"
-msgstr[0] "မမျှော်လင့်ထားသော အပို argument များ ပါဝင်နေပါသည် ({args})"
-msgstr[1] "မမျှော်လင့်ထားသော အပို argument များ ပါဝင်နေပါသည် ({args})"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1264
-#, python-brace-format
-msgid "DeprecationWarning: The command {name!r} is deprecated.{extra_message}"
-msgstr "သတိပေးချက် - ဤကွန်မန်း {name!r} ကို ဆက်လက်အသုံးပြုတော့မည် မဟုတ်ပါ။ {extra_message}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1448
-msgid "Aborted!"
-msgstr "ပယ်ဖျက်လိုက်ပါပြီ!"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1822
-msgid "Commands"
-msgstr "ကွန်မန်းများ"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1853
-msgid "Missing command."
-msgstr "ကွန်မန်း လိုအပ်နေပါသည်။"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1931
-#, python-brace-format
-msgid "No such command {name!r}."
-msgstr "ဤကွန်မန်း {name!r} မရှိပါ။"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2355
-msgid "Value must be an iterable."
-msgstr "တန်ဖိုးသည် iterable ဖြစ်ရပါမည်။"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2378
-#, python-brace-format
-msgid "Takes {nargs} values but 1 was given."
-msgid_plural "Takes {nargs} values but {len} were given."
-msgstr[0] "တန်ဖိုး {nargs} ခု လိုအပ်သော်လည်း ၁ ခုသာ ထည့်သွင်းထားပါသည်။"
-msgstr[1] "တန်ဖိုး {nargs} ခု လိုအပ်သော်လည်း {len} ခုသာ ထည့်သွင်းထားပါသည်။"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2567
-#, python-brace-format
-msgid ""
-"DeprecationWarning: The {param_type} {name!r} is "
-"deprecated.{extra_message}"
-msgstr "သတိပေးချက် - {param_type} ၏ {name!r} ကို ဆက်လက်အသုံးပြုတော့မည် မဟုတ်ပါ။ {extra_message}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:3015
-#, python-brace-format
-msgid "env var: {var}"
-msgstr "env var: {var}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:3018
-#, python-brace-format
-msgid "default: {default}"
-msgstr "မူလအတိုင်း: {default}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:3022
-msgid "required"
-msgstr "လိုအပ်သည်"
-
-#: venv/lib/python3.13/site-packages/click/core.py:3082
-msgid "(dynamic)"
-msgstr "(ပြောင်းလဲနိုင်သော)"
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:465
-#, python-format
-msgid "%(prog)s, version %(version)s"
-msgstr "%(prog)s, ဗားရှင်း %(version)s"
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:522
-msgid "Show the version and exit."
-msgstr "ဗားရှင်းကို ပြသပြီး ထွက်မည်။"
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:548
-msgid "Show this message and exit."
-msgstr "ဤစာကို ပြသပြီး ထွက်မည်။"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:50
-#: venv/lib/python3.13/site-packages/click/exceptions.py:89
-#, python-brace-format
-msgid "Error: {message}"
-msgstr "အမှား - {message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:81
-#, python-brace-format
-msgid "Try '{command} {option}' for help."
-msgstr "အကူအညီအတွက် '{command} {option}' ကို ရိုက်ထည့်ပါ။"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:130
-#, python-brace-format
-msgid "Invalid value: {message}"
-msgstr "မှားယွင်းသော တန်ဖိုး - {message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:132
-#, python-brace-format
-msgid "Invalid value for {param_hint}: {message}"
-msgstr "{param_hint} အတွက် မှားယွင်းသော တန်ဖိုး - {message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:190
-msgid "Missing argument"
-msgstr "argument လိုအပ်နေပါသည်"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:192
-msgid "Missing option"
-msgstr "option လိုအပ်နေပါသည်"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:194
-msgid "Missing parameter"
-msgstr "parameter လိုအပ်နေပါသည်"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:196
-#, python-brace-format
-msgid "Missing {param_type}"
-msgstr "{param_type} လိုအပ်နေပါသည်"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:203
-#, python-brace-format
-msgid "Missing parameter: {param_name}"
-msgstr "parameter လိုအပ်နေပါသည် - {param_name}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:223
-#, python-brace-format
-msgid "No such option: {name}"
-msgstr "ဤ option မရှိပါ - {name}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:235
-#, python-brace-format
-msgid "Did you mean {possibility}?"
-msgid_plural "(Possible options: {possibilities})"
-msgstr[0] "{possibility} ကို ဆိုလိုတာလား?"
-msgstr[1] "(ရွေးချယ်နိုင်သော options များ - {possibilities})"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:282
-msgid "unknown error"
-msgstr "အမည်မသိ အမှားဖြစ်ပွားသည်"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:289
-#, python-brace-format
-msgid "Could not open file {filename!r}: {message}"
-msgstr "ဖိုင် {filename!r} ကို ဖွင့်၍မရပါ - {message}"
-
-#: venv/lib/python3.13/site-packages/click/formatting.py:156
-msgid "Usage:"
-msgstr "အသုံးပြုပုံ -"
-
-#: venv/lib/python3.13/site-packages/click/parser.py:199
-#, python-brace-format
-msgid "Argument {name!r} takes {nargs} values."
-msgstr "Argument {name!r} အတွက် တန်ဖိုး {nargs} ခု လိုအပ်ပါသည်။"
-
-#: venv/lib/python3.13/site-packages/click/parser.py:381
-#, python-brace-format
-msgid "Option {name!r} does not take a value."
-msgstr "Option {name!r} အတွက် တန်ဖိုးထည့်သွင်းရန် မလိုပါ။"
-
-#: venv/lib/python3.13/site-packages/click/parser.py:444
-#, python-brace-format
-msgid "Option {name!r} requires an argument."
-msgid_plural "Option {name!r} requires {nargs} arguments."
-msgstr[0] "Option {name!r} အတွက် argument တစ်ခု လိုအပ်ပါသည်။"
-msgstr[1] "Option {name!r} အတွက် argument {nargs} ခု လိုအပ်ပါသည်။"
-
-#: venv/lib/python3.13/site-packages/click/shell_completion.py:332
-msgid "Shell completion is not supported for Bash versions older than 4.4."
-msgstr "Bash version 4.4 အောက်နိမ့်လျှင် Shell completion ကို အသုံးပြု၍မရပါ။"
-
-#: venv/lib/python3.13/site-packages/click/shell_completion.py:339
-msgid "Couldn't detect Bash version, shell completion is not supported."
-msgstr "Bash version ကို ရှာမတွေ့သောကြောင့်၊ shell completion ကို အသုံးပြု၍မရပါ။"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:165
-msgid "Repeat for confirmation"
-msgstr "အတည်ပြုရန် ထပ်မံရိုက်ထည့်ပါ"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:181
-msgid "Error: The value you entered was invalid."
-msgstr "အမှား - သင်ထည့်သွင်းသော တန်ဖိုး မှားယွင်းနေပါသည်။"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:183
-#, python-brace-format
-msgid "Error: {e.message}"
-msgstr "အမှား - {e.message}"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:194
-msgid "Error: The two entered values do not match."
-msgstr "အမှား - ထည့်သွင်းလိုက်သော တန်ဖိုးနှစ်ခု မကိုက်ညီပါ။"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:253
-msgid "Error: invalid input"
-msgstr "အမှား - အချက်အလက် ထည့်သွင်းမှု မှားယွင်းနေပါသည်"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:872
-msgid "Press any key to continue..."
-msgstr "ဆက်လုပ်ရန် ခလုတ်တစ်ခုခုကို နှိပ်ပါ..."
-
-#: venv/lib/python3.13/site-packages/click/types.py:332
-#, python-brace-format
-msgid ""
-"Choose from:\n"
-"\t{choices}"
-msgstr ""
-"အောက်ပါတို့မှ ရွေးချယ်ပါ -\n"
-"\t{choices}"
-
-#: venv/lib/python3.13/site-packages/click/types.py:369
-#, python-brace-format
-msgid "{value!r} is not {choice}."
-msgid_plural "{value!r} is not one of {choices}."
-msgstr[0] "{value!r} သည် {choice} မဟုတ်ပါ။"
-msgstr[1] "{value!r} သည် {choices} ထဲမှ တစ်ခုမဟုတ်ပါ။"
-
-#: venv/lib/python3.13/site-packages/click/types.py:460
-#, python-brace-format
-msgid "{value!r} does not match the format {format}."
-msgid_plural "{value!r} does not match the formats {formats}."
-msgstr[0] "{value!r} သည် ပုံစံ {format} နှင့် မကိုက်ညီပါ။"
-msgstr[1] "{value!r} သည် ပုံစံ {formats} များနှင့် မကိုက်ညီပါ။"
-
-#: venv/lib/python3.13/site-packages/click/types.py:482
-#, python-brace-format
-msgid "{value!r} is not a valid {number_type}."
-msgstr "{value!r} သည် မှန်ကန်သော {number_type} မဟုတ်ပါ။"
-
-#: venv/lib/python3.13/site-packages/click/types.py:538
-#, python-brace-format
-msgid "{value} is not in the range {range}."
-msgstr "{value} သည် အတိုင်းအတာ {range} ထဲတွင် မရှိပါ။"
-
-#: venv/lib/python3.13/site-packages/click/types.py:719
-#, python-brace-format
-msgid "{value!r} is not a valid boolean. Recognized values: {states}"
-msgstr "{value!r} သည် မှန်ကန်သော boolean မဟုတ်ပါ။ လက်ခံနိုင်သော တန်ဖိုးများ - {states}"
-
-#: venv/lib/python3.13/site-packages/click/types.py:747
-#, python-brace-format
-msgid "{value!r} is not a valid UUID."
-msgstr "{value!r} သည် မှန်ကန်သော UUID မဟုတ်ပါ။"
-
-#: venv/lib/python3.13/site-packages/click/types.py:937
-msgid "file"
-msgstr "ဖိုင်"
-
-#: venv/lib/python3.13/site-packages/click/types.py:939
-msgid "directory"
-msgstr "လမ်းကြောင်း (directory)"
-
-#: venv/lib/python3.13/site-packages/click/types.py:941
-msgid "path"
-msgstr "လမ်းကြောင်း"
-
-#: venv/lib/python3.13/site-packages/click/types.py:988
-#, python-brace-format
-msgid "{name} {filename!r} does not exist."
-msgstr "{name} {filename!r} မရှိပါ။"
-
-#: venv/lib/python3.13/site-packages/click/types.py:997
-#, python-brace-format
-msgid "{name} {filename!r} is a file."
-msgstr "{name} {filename!r} သည် ဖိုင်တစ်ခု ဖြစ်ပါသည်။"
-
-#: venv/lib/python3.13/site-packages/click/types.py:1005
-#, python-brace-format
-msgid "{name} {filename!r} is a directory."
-msgstr "{name} {filename!r} သည် ဖိုင်လမ်းကြောင်းတစ်ခု ဖြစ်ပါသည်။"
-
-#: venv/lib/python3.13/site-packages/click/types.py:1014
-#, python-brace-format
-msgid "{name} {filename!r} is not readable."
-msgstr "{name} {filename!r} ကို ဖတ်၍မရပါ။"
-
-#: venv/lib/python3.13/site-packages/click/types.py:1023
-#, python-brace-format
-msgid "{name} {filename!r} is not writable."
-msgstr "{name} {filename!r} အား ပြင်ဆင်၍မရပါ။"
-
-#: venv/lib/python3.13/site-packages/click/types.py:1032
-#, python-brace-format
-msgid "{name} {filename!r} is not executable."
-msgstr "{name} {filename!r} ကို run ၍မရပါ။"
-
-#: venv/lib/python3.13/site-packages/click/types.py:1099
-#, python-brace-format
-msgid "{len_type} values are required, but {len_value} was given."
-msgid_plural "{len_type} values are required, but {len_value} were given."
-msgstr[0] "တန်ဖိုး {len_type} ခု လိုအပ်သော်လည်း၊ {len_value} ခုသာ ထည့်သွင်းထားပါသည်။"
-msgstr[1] "တန်ဖိုး {len_type} ခု လိုအပ်သော်လည်း၊ {len_value} ခုသာ ထည့်သွင်းထားပါသည်။"
+msgstr "ကုန်ပေးသွင်းသူများနှင့် ပေးရန်ရှိသော ငွေစာရင်း"
