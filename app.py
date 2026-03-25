@@ -1,3 +1,14 @@
+import mimetypes
+
+# Force Python to recognize web files so Cloudflare 'nosniff' doesn't block them
+mimetypes.add_type('text/css', '.css')
+mimetypes.add_type('application/javascript', '.js')
+mimetypes.add_type('image/png', '.png')
+mimetypes.add_type('image/jpeg', '.jpg')
+mimetypes.add_type('image/jpeg', '.jpeg')
+mimetypes.add_type('image/svg+xml', '.svg')
+mimetypes.add_type('font/woff', '.woff')
+mimetypes.add_type('font/woff2', '.woff2')
 import os
 import io
 from functools import wraps
