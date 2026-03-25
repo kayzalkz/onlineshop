@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block page_title %}Inventory Management{% endblock %}
+{% block page_title %}{{ _('Inventory Management') }}{% endblock %}
 
 {% block content %}
 <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
-        <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-boxes me-2 text-primary"></i>Product Master List</h5>
+        <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-boxes me-2 text-primary"></i>{{ _('Product Master List') }}</h5>
         <button class="btn btn-primary fw-bold rounded-pill shadow-sm w-100 w-md-auto" data-bs-toggle="modal" data-bs-target="#addProductModal">
-            <i class="fas fa-plus me-1"></i> Add New Item
+            <i class="fas fa-plus me-1"></i> {{ _('Add New Item') }}
         </button>
     </div>
 
@@ -14,13 +14,13 @@
         <table class="table table-hover align-middle" style="min-width: 800px;">
             <thead class="text-uppercase text-muted small" style="background: #f9fafb;">
                 <tr>
-                    <th class="py-3 text-nowrap">Item Name & Specs</th>
-                    <th class="py-3">Category</th>
-                    <th class="py-3 text-end text-nowrap">Purchase Cost</th>
-                    <th class="py-3 text-end text-nowrap">Selling Price</th>
-                    <th class="py-3 text-center">Margin</th>
-                    <th class="py-3 text-center">Stock</th>
-                    <th class="py-3 text-end">Actions</th>
+                    <th class="py-3 text-nowrap">{{ _('Item Name & Specs') }}</th>
+                    <th class="py-3">{{ _('Category') }}</th>
+                    <th class="py-3 text-end text-nowrap">{{ _('Purchase Cost') }}</th>
+                    <th class="py-3 text-end text-nowrap">{{ _('Selling Price') }}</th>
+                    <th class="py-3 text-center">{{ _('Margin') }}</th>
+                    <th class="py-3 text-center">{{ _('Stock') }}</th>
+                    <th class="py-3 text-end">{{ _('Actions') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -48,9 +48,9 @@
                     </td>
                     <td class="text-end">
                         <div class="d-flex justify-content-end gap-1">
-                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#adjustModal{{ p.id }}" title="Stock In/Out"><i class="fas fa-box-open"></i></button>
-                            <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ p.id }}" title="Edit"><i class="fas fa-edit"></i></button>
-                            <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ p.id }}" title="Delete"><i class="fas fa-trash"></i></button>
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#adjustModal{{ p.id }}" title="{{ _('Stock In/Out') }}"><i class="fas fa-box-open"></i></button>
+                            <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ p.id }}" title="{{ _('Edit') }}"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ p.id }}" title="{{ _('Delete') }}"><i class="fas fa-trash"></i></button>
                         </div>
                     </td>
                 </tr>
@@ -59,16 +59,16 @@
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content border-0 rounded-4 shadow">
                             <form action="{{ url_for('inventory') }}" method="POST">
-                                <div class="modal-header border-0"><h5 class="fw-bold">Edit Product</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                                <div class="modal-header border-0"><h5 class="fw-bold">{{ _('Edit Product') }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                                 <div class="modal-body bg-light">
                                     <input type="hidden" name="action" value="edit_product">
                                     <input type="hidden" name="product_id" value="{{ p.id }}">
                                     
-                                    <div class="mb-3"><label class="small fw-bold">Name</label><input type="text" name="name" class="form-control" value="{{ p.name }}" required></div>
+                                    <div class="mb-3"><label class="small fw-bold">{{ _('Name') }}</label><input type="text" name="name" class="form-control" value="{{ p.name }}" required></div>
                                     
                                     <div class="row g-2 mb-3">
                                         <div class="col-4">
-                                            <label class="small fw-bold">Size</label>
+                                            <label class="small fw-bold">{{ _('Size') }}</label>
                                             <select name="size" class="form-select px-1">
                                                 <option value="Free Size" {% if p.size == 'Free Size' %}selected{% endif %}>Free</option>
                                                 <option value="XS" {% if p.size == 'XS' %}selected{% endif %}>XS</option>
@@ -80,16 +80,22 @@
                                                 <option value="XXXL" {% if p.size == 'XXXL' %}selected{% endif %}>XXXL</option>
                                             </select>
                                         </div>
-                                        <div class="col-4"><label class="small fw-bold">Color</label><input type="text" name="color" class="form-control" value="{{ p.color }}"></div>
-                                        <div class="col-4"><label class="small fw-bold">Category</label><input type="text" name="category" class="form-control" value="{{ p.category }}"></div>
+                                        <div class="col-4"><label class="small fw-bold">{{ _('Color') }}</label><input type="text" name="color" class="form-control" value="{{ p.color }}"></div>
+                                        <div class="col-4"><label class="small fw-bold">{{ _('Category') }}</label><input type="text" name="category" class="form-control" value="{{ p.category }}"></div>
                                     </div>
 
                                     <div class="row g-2">
-                                        <div class="col-6"><label class="small fw-bold text-danger">Cost (MMK)</label><input type="number" name="purchase_price" class="form-control" value="{{ p.purchase_price }}" required></div>
-                                        <div class="col-6"><label class="small fw-bold text-success">Sell (MMK)</label><input type="number" name="selling_price" class="form-control" value="{{ p.selling_price }}" required></div>
+                                        <div class="col-6">
+                                            <label class="small fw-bold text-danger">{{ _('Cost (MMK)') }}</label>
+                                            <input type="number" name="purchase_price" class="form-control" value="{{ '{:.0f}'.format(p.purchase_price) }}" min="0" required>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="small fw-bold text-success">{{ _('Sell (MMK)') }}</label>
+                                            <input type="number" name="selling_price" class="form-control" value="{{ '{:.0f}'.format(p.selling_price) }}" min="0" required>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="modal-footer border-0 p-3"><button type="submit" class="btn btn-primary w-100 fw-bold">Save Changes</button></div>
+                                <div class="modal-footer border-0 p-3"><button type="submit" class="btn btn-primary w-100 fw-bold">{{ _('Save Changes') }}</button></div>
                             </form>
                         </div>
                     </div>
@@ -99,15 +105,15 @@
                     <div class="modal-dialog modal-sm modal-dialog-centered">
                         <div class="modal-content border-0 rounded-4 shadow">
                             <form action="{{ url_for('inventory') }}" method="POST">
-                                <div class="modal-header border-0"><h6 class="fw-bold mb-0">Adjust: {{ p.name }}</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                                <div class="modal-header border-0"><h6 class="fw-bold mb-0">{{ _('Adjust') }}: {{ p.name }}</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                                 <div class="modal-body bg-light text-center">
                                     <input type="hidden" name="action" value="adjust_stock">
                                     <input type="hidden" name="product_id" value="{{ p.id }}">
-                                    <p class="text-muted small">Use positive (+) to add, negative (-) to remove.</p>
+                                    <p class="text-muted small">{{ _('Use positive (+) to add, negative (-) to remove.') }}</p>
                                     <input type="number" name="qty_change" class="form-control form-control-lg text-center fw-bold mb-3" placeholder="+10 or -5" required>
-                                    <input type="text" name="reason" class="form-control" placeholder="Reason (e.g. Delivery)">
+                                    <input type="text" name="reason" class="form-control" placeholder="{{ _('Reason (e.g. Delivery)') }}">
                                 </div>
-                                <div class="modal-footer border-0"><button type="submit" class="btn btn-primary w-100 fw-bold">Update Inventory</button></div>
+                                <div class="modal-footer border-0"><button type="submit" class="btn btn-primary w-100 fw-bold">{{ _('Update Inventory') }}</button></div>
                             </form>
                         </div>
                     </div>
@@ -119,11 +125,11 @@
                             <form action="{{ url_for('inventory') }}" method="POST">
                                 <div class="modal-body text-center p-4">
                                     <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
-                                    <h5 class="fw-bold">Delete Item?</h5>
+                                    <h5 class="fw-bold">{{ _('Delete Item?') }}</h5>
                                     <input type="hidden" name="action" value="delete_product">
                                     <input type="hidden" name="product_id" value="{{ p.id }}">
-                                    <button type="submit" class="btn btn-danger w-100 fw-bold mb-2 mt-3">Yes, Delete</button>
-                                    <button type="button" class="btn btn-light w-100" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-danger w-100 fw-bold mb-2 mt-3">{{ _('Yes, Delete') }}</button>
+                                    <button type="button" class="btn btn-light w-100" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
                                 </div>
                             </form>
                         </div>
@@ -139,16 +145,20 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
             <form action="{{ url_for('inventory') }}" method="POST">
-                <div class="modal-header border-0"><h5 class="fw-bold mb-0">Register New Item</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-header border-0"><h5 class="fw-bold mb-0">{{ _('Register New Item') }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body bg-light">
                     <input type="hidden" name="action" value="add_product">
-                    <div class="mb-3"><label class="small fw-bold">Item Name</label><input type="text" name="name" class="form-control" required></div>
+                    
+                    <div class="mb-3">
+                        <label class="small fw-bold">{{ _('Item Name / Code') }}</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. SI001" required>
+                    </div>
                     
                     <div class="row g-2 mb-3">
                         <div class="col-4">
-                            <label class="small fw-bold">Size</label>
+                            <label class="small fw-bold">{{ _('Size') }}</label>
                             <select name="size" class="form-select px-1">
-                                <option value="Free Size">Free</option>
+                                <option value="Free Size">{{ _('Free') }}</option>
                                 <option value="XS">XS</option>
                                 <option value="S">S</option>
                                 <option value="M">M</option>
@@ -158,17 +168,35 @@
                                 <option value="XXXL">XXXL</option>
                             </select>
                         </div>
-                        <div class="col-4"><label class="small fw-bold">Color</label><input type="text" name="color" class="form-control" placeholder="Red"></div>
-                        <div class="col-4"><label class="small fw-bold">Category</label><input type="text" name="category" class="form-control"></div>
+                        <div class="col-4">
+                            <label class="small fw-bold">{{ _('Color') }}</label>
+                            <input type="text" name="color" class="form-control" placeholder="e.g. Red">
+                        </div>
+                        <div class="col-4">
+                            <label class="small fw-bold">{{ _('Category') }}</label>
+                            <input type="text" name="category" class="form-control" placeholder="e.g. Shirts">
+                        </div>
                     </div>
 
                     <div class="row g-2 mb-3">
-                        <div class="col-6"><label class="small fw-bold text-danger">Cost (MMK)</label><input type="number" name="purchase_price" class="form-control" value="0" required></div>
-                        <div class="col-6"><label class="small fw-bold text-success">Sell (MMK)</label><input type="number" name="selling_price" class="form-control" value="0" required></div>
+                        <div class="col-6">
+                            <label class="small fw-bold text-danger">{{ _('Cost (MMK)') }}</label>
+                            <input type="number" name="purchase_price" class="form-control" value="0" min="0" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold text-success">{{ _('Sell (MMK)') }}</label>
+                            <input type="number" name="selling_price" class="form-control" value="0" min="0" required>
+                        </div>
                     </div>
-                    <div class="mb-3"><label class="small fw-bold text-primary">Initial Stock</label><input type="number" name="stock" class="form-control form-control-lg fw-bold" value="0"></div>
+                    
+                    <div class="mb-3">
+                        <label class="small fw-bold text-primary">{{ _('Initial Stock') }}</label>
+                        <input type="number" name="stock" class="form-control form-control-lg fw-bold" value="0" min="0" required>
+                    </div>
                 </div>
-                <div class="modal-footer border-0 p-3"><button type="submit" class="btn btn-primary w-100 fw-bold">Save Item</button></div>
+                <div class="modal-footer border-0 p-3">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">{{ _('Save Item') }}</button>
+                </div>
             </form>
         </div>
     </div>
