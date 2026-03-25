@@ -157,7 +157,12 @@
                     <table class="table ledger-table">
                         <thead>
                             <tr>
-                                <th>Ref #</th><th>Customer</th><th>Items</th><th>Amount</th><th>Payment</th><th>Status</th><th class="text-end">Actions</th>
+                                <th>Ref #</th>
+                                <th>Customer</th>
+                                <th>Items</th>
+                                <th class="text-end">Amount</th> <th>Payment</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -166,7 +171,15 @@
                                 <td class="text-muted">#{{ sale.id }}</td>
                                 <td><div class="fw-bold text-dark">{{ sale.customer.name if sale.customer else 'Walk-in' }}</div></td>
                                 <td>{% for item in sale.items %}<div class="small">{{ item.product_name }} (x{{ item.quantity }})</div>{% endfor %}</td>
-                                <td><div class="fw-bold">{{ "{:,.0f}".format(sale.total_amount) }} MMK</div></td>
+                                
+                                <td class="text-end">
+                                    <div class="fw-bold text-dark">{{ "{:,.0f}".format(sale.total_amount) }} MMK</div>
+                                    <small class="text-muted d-block" style="font-size: 11px;">PAID: {{ "{:,.0f}".format(sale.amount_paid) }} MMK</small>
+                                    {% if sale.amount_paid > sale.total_amount %}
+                                        <small class="text-success fw-bold d-block" style="font-size: 11px;">CHANGE: {{ "{:,.0f}".format(sale.amount_paid - sale.total_amount) }} MMK</small>
+                                    {% endif %}
+                                </td>
+
                                 <td class="text-uppercase small fw-bold text-primary">{{ sale.payment_method }}</td>
                                 <td>{% if sale.amount_paid >= sale.total_amount %}<span class="badge bg-success">PAID</span>{% else %}<span class="badge bg-danger">DEBT</span>{% endif %}</td>
                                 <td class="text-end">
@@ -206,7 +219,10 @@
                         <h2>{{ company.name if company else 'BOUTIQUE SHOP' }}</h2>
                         <p>{{ company.address if company }}<br>Phone: {{ company.phone if company }}</p>
                     </div>
-                    <div class="inv-title"><h1>INVOICE</h1><p>#{{ last_sale.id }}</p></div>
+                    <div class="inv-title">
+                        <h1>INVOICE</h1>
+                        <p>#{{ last_sale.id }}<br><small>{{ last_sale.customer.name if last_sale.customer else 'Walk-in' }}</small></p>
+                    </div>
                 </div>
                 <table class="inv-table">
                     <thead><tr><th>Description</th><th style="text-align: center;">Qty</th><th>Price</th></tr></thead>
@@ -218,8 +234,30 @@
                 </table>
                 <div style="content: ''; display: table; clear: both;">
                     <table class="inv-finance">
-                        <tr><th>Total:</th><td>{{ "{:,.0f}".format(last_sale.total_amount) }} MMK</td></tr>
-                        <tr class="balance-row"><th>Due:</th><td>{{ "{:,.0f}".format((last_sale.total_amount - last_sale.amount_paid)|abs) }} MMK</td></tr>
+                        <tr>
+                            <th>Total Bill:</th>
+                            <td class="text-end fw-bold">{{ "{:,.0f}".format(last_sale.total_amount) }} MMK</td>
+                        </tr>
+                        <tr>
+                            <th>Amount Tendered:</th>
+                            <td class="text-end">{{ "{:,.0f}".format(last_sale.amount_paid) }} MMK</td>
+                        </tr>
+                        <tr class="balance-row">
+                            {% if last_sale.amount_paid > last_sale.total_amount %}
+                                {% if last_sale.customer_id %}
+                                    <th>Added to Store Credit:</th>
+                                {% else %}
+                                    <th>Change Returned:</th>
+                                {% endif %}
+                                <td class="text-end" style="color: #059669;">{{ "{:,.0f}".format(last_sale.amount_paid - last_sale.total_amount) }} MMK</td>
+                            {% elif last_sale.amount_paid < last_sale.total_amount %}
+                                <th>Remaining Debt:</th>
+                                <td class="text-end" style="color: #e11d48;">{{ "{:,.0f}".format(last_sale.total_amount - last_sale.amount_paid) }} MMK</td>
+                            {% else %}
+                                <th>Status:</th>
+                                <td class="text-end" style="color: #059669;">Fully Paid</td>
+                            {% endif %}
+                        </tr>
                     </table>
                 </div>
             </div>
