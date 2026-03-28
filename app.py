@@ -42,8 +42,6 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback_key')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Remove app.run(debug=True) from the bottom of your file later!
-
 UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -52,8 +50,8 @@ babel = Babel(app, locale_selector=lambda: session.get('lang', 'en'))
 
 # Initialize Database & Security
 db = SQLAlchemy(app)
-migrate = Migrate(app, db) # Enables safe database upgrades
-csrf = CSRFProtect(app)    # Blocks Cross-Site Request Forgery attacks
+migrate = Migrate(app, db)
+csrf = CSRFProtect(app)
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -194,6 +192,21 @@ class Expense(db.Model):
     description = db.Column(db.String(150))
     timestamp = db.Column(db.DateTime, default=get_mmt_time)
 
+# NEW: Activity Log Model
+class ActivityLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    action = db.Column(db.String(50), nullable=False)
+    details = db.Column(db.String(255))
+    timestamp = db.Column(db.DateTime, default=get_mmt_time)
+    user = db.relationship('User', backref='logs')
+
+# NEW: Activity Log Helper Function
+def log_activity(action, details):
+    if current_user.is_authenticated:
+        db.session.add(ActivityLog(user_id=current_user.id, action=action, details=details))
+        db.session.commit()
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -273,35 +286,26 @@ def process_sale():
         db.session.add(sale)
         db.session.flush()
 
-    # ==========================================
-    # ENTERPRISE FIX: SECURE INVENTORY DEDUCTION
-    # ==========================================
     for item_str in cart_data.split(','):
         if item_str:
             p_id, qty = item_str.split(':')
             qty = int(qty)
-            
-            # 1. LOCK THE DATABASE ROW for this specific product
             product = Product.query.with_for_update().get(int(p_id))
             
             if product:
-                # 2. SAFETY CHECK: Ensure we actually have the stock (skip this check if we are just editing an old sale)
                 if product.stock < qty and not editing_sale_id:
-                    db.session.rollback() # Cancel the whole receipt
+                    db.session.rollback()
                     flash(_(f'Checkout Failed! Another cashier just bought the last {product.name}.'), 'danger')
                     return redirect(url_for('pos'))
 
-                # Proceed with the sale normally
                 prod_desc = f"{product.name} ({product.size} - {product.color})" if product.color else f"{product.name} ({product.size})"
                 db.session.add(SaleItem(sale_id=sale.id, product_name=prod_desc, quantity=qty, price=product.selling_price, purchase_cost=product.purchase_price))
                 product.stock -= qty
-    # ==========================================
 
     if cust_id:
         customer = Customer.query.get(cust_id)
         customer.balance += (total_amount - amount_paid)
 
-    # Wrap the commit in a try/except block just in case the database is completely locked up
     try:
         db.session.commit()
     except Exception as e:
@@ -313,6 +317,8 @@ def process_sale():
     session.pop('edit_customer', None)
     session.pop('edit_paid', None)
     session['last_sale_id'] = sale.id
+    
+    log_activity('SALE_COMPLETED', f"Processed Sale #{sale.id} for {total_amount:,.0f} MMK")
     flash(_('Transaction processed successfully!'), 'success')
     return redirect(url_for('pos'))
 
@@ -330,6 +336,8 @@ def edit_sale(sale_id):
     session['edit_customer'] = sale.customer_id if sale.customer_id else ""
     session['edit_paid'] = float(sale.amount_paid)
     session['editing_sale_id'] = sale.id 
+    
+    log_activity('SALE_EDITED', f"Opened Sale #{sale.id} for editing")
     flash(_('Editing Sale #{}. Original record is safe until you click Complete.').format(sale.id), 'info')
     return redirect(url_for('pos'))
 
@@ -358,6 +366,8 @@ def delete_sale(sale_id):
     SaleItem.query.filter_by(sale_id=sale.id).delete()
     db.session.delete(sale)
     db.session.commit()
+    
+    log_activity('SALE_VOIDED', f"Permanently voided Sale #{sale_id} and restored stock")
     flash(_('Sale voided and stock restored.'), 'warning')
     return redirect(request.referrer or url_for('reports'))
 
@@ -424,6 +434,8 @@ def inventory():
                     db.session.add(p)
                     db.session.flush()
                     if p.stock != 0: db.session.add(StockLog(product_id=p.id, quantity=p.stock, action="Initial Setup", timestamp=get_mmt_time()))
+                    
+                    log_activity('PRODUCT_ADDED', f"Added new item: {p.name} ({p.size})")
                     flash(_('Product added successfully.'), 'success')
                 except ValueError: flash(_('Invalid numbers.'), 'danger')
                     
@@ -433,14 +445,19 @@ def inventory():
                 try:
                     p.name, p.category, p.size, p.color = request.form.get('name', '').strip(), request.form.get('category', '').strip(), request.form.get('size', '').strip(), request.form.get('color', '').strip()
                     p.purchase_price, p.selling_price, p.supplier_id = Decimal(request.form.get('purchase_price', '0')), Decimal(request.form.get('selling_price', '0')), supplier_id
+                    
+                    log_activity('PRODUCT_EDITED', f"Updated details for: {p.name} ({p.size})")
                     flash(_('Product updated.'), 'success')
                 except ValueError: flash(_('Invalid numbers.'), 'danger')
 
         elif action == 'delete_product':
             p = Product.query.get(request.form.get('product_id'))
             if p:
+                deleted_name = f"{p.name} ({p.size})" 
                 StockLog.query.filter_by(product_id=p.id).delete() 
                 db.session.delete(p)
+                
+                log_activity('PRODUCT_DELETED', f"Permanently deleted: {deleted_name}")
                 flash(_('Product deleted.'), 'warning')
                 
         elif action == 'adjust_stock':
@@ -449,7 +466,10 @@ def inventory():
                 qty_change = int(request.form.get('qty_change', '0'))
                 if p and qty_change != 0:
                     p.stock += qty_change
-                    db.session.add(StockLog(product_id=p.id, quantity=qty_change, action=request.form.get('reason', 'Manual Adjustment').strip(), timestamp=get_mmt_time()))
+                    reason = request.form.get('reason', 'Manual Adjustment').strip()
+                    db.session.add(StockLog(product_id=p.id, quantity=qty_change, action=reason, timestamp=get_mmt_time()))
+                    
+                    log_activity('STOCK_ADJUSTED', f"Manually adjusted {p.name} stock by {qty_change} ({reason})")
                     flash(_('Stock adjusted.'), 'success')
             except ValueError: flash(_('Invalid adjustment.'), 'danger')
                 
@@ -480,6 +500,7 @@ def create_po():
             total_amount += (cost * qty)
     po.total_amount = total_amount
     db.session.commit()
+    log_activity('PO_CREATED', f"Created PO #{po.id} for {total_amount:,.0f} MMK")
     flash(_('Purchase Order created.'), 'success')
     return redirect(url_for('purchase_orders'))
 
@@ -495,6 +516,7 @@ def receive_po(po_id):
             item.product.stock += item.quantity
             db.session.add(StockLog(product_id=item.product.id, quantity=item.quantity, action=f"Received via PO #{po.id}", timestamp=get_mmt_time()))
         db.session.commit()
+        log_activity('PO_RECEIVED', f"Received stock for PO #{po.id} into inventory")
         flash(_('Goods received!'), 'success')
     return redirect(url_for('purchase_orders'))
 
@@ -506,6 +528,7 @@ def cancel_po(po_id):
     if po.status == 'Pending':
         po.status = 'Cancelled'
         db.session.commit()
+        log_activity('PO_CANCELLED', f"Cancelled PO #{po.id}")
         flash(_('Purchase Order cancelled.'), 'warning')
     return redirect(url_for('purchase_orders'))
 
@@ -516,12 +539,15 @@ def suppliers():
     if request.method == 'POST':
         action = request.form.get('action', 'add')
         if action == 'add':
-            db.session.add(Supplier(name=request.form.get('name'), contact_person=request.form.get('contact_person'), phone=request.form.get('phone'), address=request.form.get('address'), balance=Decimal(request.form.get('balance', '0'))))
+            supplier_name = request.form.get('name')
+            db.session.add(Supplier(name=supplier_name, contact_person=request.form.get('contact_person'), phone=request.form.get('phone'), address=request.form.get('address'), balance=Decimal(request.form.get('balance', '0'))))
+            log_activity('SUPPLIER_ADDED', f"Registered supplier: {supplier_name}")
             flash(_('Supplier registered.'), 'success')
         elif action == 'edit':
             s = Supplier.query.get(request.form.get('supplier_id'))
             if s:
                 s.name, s.contact_person, s.phone, s.balance = request.form.get('name'), request.form.get('contact_person'), request.form.get('phone'), request.form.get('balance', s.balance)
+                log_activity('SUPPLIER_EDITED', f"Updated supplier: {s.name}")
                 flash(_('Supplier updated.'), 'success')
         elif action == 'delete':
             s = Supplier.query.get(request.form.get('supplier_id'))
@@ -529,8 +555,10 @@ def suppliers():
                 if PurchaseOrder.query.filter_by(supplier_id=s.id).first() or SupplierPayment.query.filter_by(supplier_id=s.id).first():
                     flash(_('Error: Cannot delete this supplier. Has existing records.'), 'danger')
                 else:
+                    deleted_supplier = s.name 
                     for p in s.products: p.supplier_id = None
                     db.session.delete(s)
+                    log_activity('SUPPLIER_DELETED', f"Deleted supplier: {deleted_supplier}")
                     flash(_('Supplier removed.'), 'warning')
         db.session.commit()
         return redirect(url_for('suppliers'))
@@ -547,6 +575,7 @@ def supplier_pay(supplier_id):
         supplier.balance -= amount
         db.session.add(SupplierPayment(supplier_id=supplier.id, amount=amount, payment_method=request.form.get('payment_method', 'cash'), reference_note=request.form.get('reference_note', ''), timestamp=get_mmt_time()))
         db.session.commit()
+        log_activity('SUPPLIER_PAID', f"Paid {amount:,.0f} MMK to {supplier.name}")
         flash(f'Payment recorded.', 'success')
     return redirect(url_for('suppliers'))
 
@@ -596,11 +625,14 @@ def reports():
     customers = Customer.query.all() 
     suppliers = Supplier.query.all()
     expenses_list = Expense.query.order_by(Expense.timestamp.desc()).limit(50).all() 
+    
+    # NEW: Fetch activity logs for the Audit tab
+    activity_logs = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).limit(100).all()
 
     return render_template('reports.html', daily_rev=daily_rev, cash_total=cash_total, digital_total=digital_total, credit_total=credit_total,
                            all_sales=all_sales, products=products, customers=customers, suppliers=suppliers,
                            total_revenue=total_revenue, total_cost=total_cost, gross_profit=gross_profit, total_expenses=total_expenses, net_profit=net_profit, 
-                           expenses_list=expenses_list)
+                           expenses_list=expenses_list, activity_logs=activity_logs)
 
 @app.route('/add_expense', methods=['POST'])
 @login_required
@@ -617,7 +649,6 @@ def add_expense():
     return redirect(url_for('reports'))
 
 def get_filtered_sales(request_args):
-    """Helper function to filter sales based on selected date range"""
     time_frame = request_args.get('time_frame', 'all')
     start_date_str = request_args.get('start_date')
     end_date_str = request_args.get('end_date')
@@ -725,6 +756,57 @@ def export_customers_excel():
     output.seek(0)
     return send_file(output, download_name=f"Client_Financial_Report_{get_mmt_time().strftime('%Y-%m-%d')}.xlsx", as_attachment=True)
 
+# NEW: Audit Log Export Logic
+def get_filtered_logs(request_args):
+    time_frame = request_args.get('time_frame', 'all')
+    start_date_str = request_args.get('start_date')
+    end_date_str = request_args.get('end_date')
+    
+    query = ActivityLog.query
+    today = get_mmt_time()
+
+    if time_frame == 'today':
+        query = query.filter(func.date(ActivityLog.timestamp) == today.date())
+    elif time_frame == 'week':
+        query = query.filter(ActivityLog.timestamp >= (today - timedelta(days=7)).date())
+    elif time_frame == 'month':
+        query = query.filter(ActivityLog.timestamp >= today.replace(day=1).date())
+    elif time_frame == 'custom' and start_date_str and end_date_str:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
+        query = query.filter(ActivityLog.timestamp >= start_date, ActivityLog.timestamp < end_date)
+        
+    return query.order_by(ActivityLog.timestamp.desc()).all(), time_frame
+
+@app.route('/export/audit_excel')
+@login_required
+def export_audit_excel():
+    if not current_user.is_admin:
+        flash(_('Unauthorized access.'), 'danger')
+        return redirect(url_for('reports'))
+        
+    logs, time_frame = get_filtered_logs(request.args)
+    data = []
+    
+    for log in logs:
+        data.append({
+            'Date & Time': log.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'Staff Member': log.user.username if log.user else 'System',
+            'Action Category': log.action.replace('_', ' '),
+            'Details': log.details
+        })
+        
+    df = pd.DataFrame(data)
+    output = io.BytesIO()
+    
+    with pd.ExcelWriter(output, engine='openpyxl') as writer: 
+        df.to_excel(writer, index=False, sheet_name='System Audit Trail')
+        
+    output.seek(0)
+    filename = f"{get_mmt_time().strftime('%d-%m-%Y')}-{time_frame.capitalize()}-Security-Audit.xlsx"
+    return send_file(output, download_name=filename, as_attachment=True)
+
+
 # ==========================================
 # ADMIN & SYSTEM ROUTES
 # ==========================================
@@ -760,18 +842,23 @@ def manage_users():
     if request.method == 'POST':
         action = request.form.get('action', 'create')
         if action == 'create':
-            db.session.add(User(username=request.form.get('username'), password_hash=bcrypt.generate_password_hash(request.form.get('password')).decode('utf-8'), role_id=request.form.get('role_id')))
+            username = request.form.get('username')
+            db.session.add(User(username=username, password_hash=bcrypt.generate_password_hash(request.form.get('password')).decode('utf-8'), role_id=request.form.get('role_id')))
+            log_activity('USER_CREATED', f"Created new staff account: {username}")
             flash(_('Staff account created.'), 'success')
         elif action == 'edit':
             u = User.query.get(request.form.get('user_id'))
             if u:
                 if u.username != 'admin': u.role_id = request.form.get('role_id')
                 if request.form.get('password', '').strip(): u.password_hash = bcrypt.generate_password_hash(request.form.get('password')).decode('utf-8')
+                log_activity('USER_EDITED', f"Changed permissions/password for: {u.username}")
                 flash(_('User updated.'), 'success')
         elif action == 'delete':
             u = User.query.get(request.form.get('user_id'))
             if u and u.username != 'admin':
+                deleted_username = u.username
                 db.session.delete(u)
+                log_activity('USER_DELETED', f"Permanently deleted staff account: {deleted_username}")
                 flash(_('User deleted.'), 'warning')
         db.session.commit()
         return redirect(url_for('manage_users'))
@@ -819,7 +906,6 @@ def abs_filter(value): return abs(value)
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        # Ensure Admin Setup exists
         admin_role = Role.query.filter_by(name='System Admin').first()
         if not admin_role:
             admin_role = Role(name='System Admin', pos_access=True, inventory_access=True, supplier_access=True, report_access=True, manage_users_access=True)
