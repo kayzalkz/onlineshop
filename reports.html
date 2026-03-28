@@ -51,6 +51,10 @@
     <div class="erp-tab" data-bs-toggle="tab" data-bs-target="#ap" role="tab">Accounts Payable</div>
     <div class="erp-tab" data-bs-toggle="tab" data-bs-target="#pl" role="tab">Profit & Loss (P&L)</div>
     <div class="erp-tab" data-bs-toggle="tab" data-bs-target="#inventory" role="tab">Inventory Valuation</div>
+    
+    {% if current_user.is_admin %}
+    <div class="erp-tab" data-bs-toggle="tab" data-bs-target="#audit" role="tab"><i class="fas fa-user-shield me-1"></i> Audit Logs</div>
+    {% endif %}
 </div>
 
 <div class="tab-content" id="reportTabContent">
@@ -310,6 +314,56 @@
             </div>
         </div>
     </div>
+    
+    {% if current_user.is_admin %}
+    <div class="tab-pane fade" id="audit" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold m-0 text-dark"><i class="fas fa-user-secret me-2 text-primary"></i>System Activity Log</h5>
+                <button class="btn btn-outline-dark fw-bold px-4 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#exportAuditModal">
+                    <i class="fas fa-file-excel me-2"></i>Export Logs
+                </button>
+            </div>
+            
+            <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th class="small text-muted text-uppercase fw-bold">Time</th>
+                            <th class="small text-muted text-uppercase fw-bold">Staff</th>
+                            <th class="small text-muted text-uppercase fw-bold">Action</th>
+                            <th class="small text-muted text-uppercase fw-bold">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in activity_logs %}
+                        <tr>
+                            <td class="text-muted small">{{ log.timestamp.strftime('%d %b, %H:%M') }}</td>
+                            <td class="fw-bold text-dark"><i class="fas fa-user-circle me-1 text-muted"></i> {{ log.user.username if log.user else 'System' }}</td>
+                            <td>
+                                {% if 'SALE' in log.action %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success">{{ log.action|replace('_', ' ') }}</span>
+                                {% elif 'PRODUCT' in log.action or 'STOCK' in log.action %}
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">{{ log.action|replace('_', ' ') }}</span>
+                                {% elif 'PO_' in log.action or 'SUPPLIER' in log.action %}
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">{{ log.action|replace('_', ' ') }}</span>
+                                {% elif 'USER' in log.action %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">{{ log.action|replace('_', ' ') }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ log.action|replace('_', ' ') }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">{{ log.details }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center py-4 text-muted">No activity recorded yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <div class="modal fade" id="exportModal" tabindex="-1">
@@ -319,7 +373,7 @@
                 <h5 class="modal-title fw-bold">Export Master Ledger</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body px-4">
+            <div class="modal-body px-4 pb-4">
                 <div class="mb-4">
                     <label class="form-label text-muted small fw-bold text-uppercase">Select Time Frame</label>
                     <select class="form-select bg-light border-0 py-2 fw-bold" id="exportTimeFrame" onchange="toggleCustomDates()">
@@ -355,6 +409,44 @@
     </div>
 </div>
 
+<div class="modal fade" id="exportAuditModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header border-bottom-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold">Export Security Audit</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 pb-4">
+                <div class="mb-4">
+                    <label class="form-label text-muted small fw-bold text-uppercase">Select Time Frame</label>
+                    <select class="form-select bg-light border-0 py-2 fw-bold" id="auditTimeFrame" onchange="toggleAuditCustomDates()">
+                        <option value="today">Today</option>
+                        <option value="week">This Week (Last 7 Days)</option>
+                        <option value="month">This Month</option>
+                        <option value="all" selected>All Time</option>
+                        <option value="custom">Custom Date Range</option>
+                    </select>
+                </div>
+                
+                <div class="row g-2 mb-4 d-none" id="auditCustomDateBox">
+                    <div class="col-6">
+                        <label class="form-label text-muted small fw-bold text-uppercase">Start Date</label>
+                        <input type="date" class="form-control bg-light border-0 py-2" id="auditStart">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted small fw-bold text-uppercase">End Date</label>
+                        <input type="date" class="form-control bg-light border-0 py-2" id="auditEnd">
+                    </div>
+                </div>
+                
+                <button type="button" class="btn btn-success w-100 fw-bold py-3 shadow-sm rounded-3" onclick="triggerAuditExport()">
+                    <i class="fas fa-download me-2"></i>Download Excel Report
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     function toggleCustomDates() {
         const timeFrame = document.getElementById('exportTimeFrame').value;
@@ -383,6 +475,37 @@
         }
         
         bootstrap.Modal.getInstance(document.getElementById('exportModal')).hide();
+        window.location.href = url;
+    }
+    
+    // --- AUDIT LOG EXPORT LOGIC ---
+    function toggleAuditCustomDates() {
+        const timeFrame = document.getElementById('auditTimeFrame').value;
+        const customBox = document.getElementById('auditCustomDateBox');
+        if (timeFrame === 'custom') {
+            customBox.classList.remove('d-none');
+        } else {
+            customBox.classList.add('d-none');
+        }
+    }
+
+    function triggerAuditExport() {
+        const timeFrame = document.getElementById('auditTimeFrame').value;
+        let url = "{{ url_for('export_audit_excel') }}";
+        
+        url += `?time_frame=${timeFrame}`;
+        
+        if (timeFrame === 'custom') {
+            const start = document.getElementById('auditStart').value;
+            const end = document.getElementById('auditEnd').value;
+            if (!start || !end) {
+                alert("Please select both a start and end date.");
+                return;
+            }
+            url += `&start_date=${start}&end_date=${end}`;
+        }
+        
+        bootstrap.Modal.getInstance(document.getElementById('exportAuditModal')).hide();
         window.location.href = url;
     }
 </script>
