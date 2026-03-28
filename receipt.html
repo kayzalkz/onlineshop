@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="{{ session.get('lang', 'en') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt #{{ sale.id }}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* --- THERMAL PRINTER OPTIMIZED CSS --- */
+        body { 
+            font-family: 'Courier New', Courier, monospace; /* Best font for thermal printers */
+            background-color: #e5e7eb; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            margin: 0; 
+            padding: 20px;
+        }
+        
+        .thermal-container {
+            width: 80mm; /* Standard POS Printer Width */
+            background: white;
+            padding: 5mm;
+            box-sizing: border-box;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            color: #000;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        /* Center alignments */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-left { text-align: left; }
+        .fw-bold { font-weight: bold; }
+
+        .header img { max-height: 50px; margin-bottom: 5px; }
+        .header h1 { margin: 0; font-size: 16px; text-transform: uppercase; }
+        .header p { margin: 2px 0; font-size: 11px; }
+
+        .divider { border-bottom: 1px dashed #000; margin: 8px 0; }
+
+        .meta-data { font-size: 11px; margin-bottom: 8px; }
+        .meta-data table { width: 100%; }
+        .meta-data td { padding: 1px 0; }
+
+        /* Items Table */
+        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        .items-table th { border-bottom: 1px dashed #000; padding-bottom: 4px; font-size: 11px; }
+        .items-table td { padding: 4px 0; font-size: 11px; vertical-align: top; }
+        .col-qty { width: 15%; text-align: center; }
+        .col-price { width: 30%; text-align: right; }
+
+        /* Finance Section */
+        .totals-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .totals-table td { padding: 3px 0; }
+        .grand-total { font-size: 14px; font-weight: bold; border-top: 1px solid #000; padding-top: 5px !important; }
+
+        .footer { text-align: center; font-size: 10px; margin-top: 15px; }
+
+        /* Screen Controls */
+        .controls { margin-bottom: 20px; display: flex; gap: 10px; }
+        .btn { padding: 10px 20px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; border: none; text-decoration: none; }
+        .btn-print { background-color: #111827; color: white; }
+        .btn-back { background-color: #ffffff; color: #374151; border: 1px solid #d1d5db; }
+
+        /* Print Specific Rules */
+        @media print {
+            @page { 
+                margin: 0; 
+                size: 80mm auto; /* Tells printer exact dimensions */
+            }
+            body { background: transparent; padding: 0; }
+            .thermal-container { box-shadow: none; width: 100%; padding: 2mm; } 
+            .controls { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls no-print">
+        <button onclick="window.print()" class="btn btn-print"><i class="fas fa-print"></i> Print Receipt</button>
+        <a href="javascript:history.back()" class="btn btn-back"><i class="fas fa-arrow-left"></i> Go Back</a>
+    </div>
+
+    <div class="thermal-container">
+        <div class="header text-center">
+            {% if company and company.logo_filename %}
+                <img src="{{ url_for('static', filename='uploads/' + company.logo_filename) }}" alt="Logo">
+            {% endif %}
+            <h1>{{ company.name if company else 'BOUTIQUE SHOP' }}</h1>
+            <p>{{ company.address if company else '' }}</p>
+            <p>Tel: {{ company.phone if company else '' }}</p>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="meta-data">
+            <table>
+                <tr>
+                    <td>Receipt: #{{ sale.id }}</td>
+                    <td class="text-right">{{ sale.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
+                </tr>
+                <tr>
+                    <td>Cashier: Admin</td>
+                    <td class="text-right">{{ sale.payment_method|upper }}</td>
+                </tr>
+                <tr>
+                    <td colspan="2">Cust: {{ sale.customer.name if sale.customer else 'Walk-in' }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="divider"></div>
+
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th class="text-left">Item</th>
+                    <th class="col-qty">Qty</th>
+                    <th class="col-price">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in sale.items %}
+                <tr>
+                    <td>{{ item.product_name }}</td>
+                    <td class="col-qty">{{ item.quantity }}</td>
+                    <td class="col-price">{{ "{:,.0f}".format(item.price * item.quantity) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="divider"></div>
+
+        <table class="totals-table">
+            <tr>
+                <td>Subtotal</td>
+                <td class="text-right">{{ "{:,.0f}".format(sale.total_amount) }}</td>
+            </tr>
+            <tr class="grand-total">
+                <td>TOTAL (MMK)</td>
+                <td class="text-right">{{ "{:,.0f}".format(sale.total_amount) }}</td>
+            </tr>
+            <tr>
+                <td>Tendered</td>
+                <td class="text-right">{{ "{:,.0f}".format(sale.amount_paid) }}</td>
+            </tr>
+            
+            {% if sale.amount_paid > sale.total_amount %}
+            <tr>
+                <td><strong>Change</strong></td>
+                <td class="text-right"><strong>{{ "{:,.0f}".format(sale.amount_paid - sale.total_amount) }}</strong></td>
+            </tr>
+            {% elif sale.amount_paid < sale.total_amount %}
+            <tr>
+                <td><strong>Debt/Credit</strong></td>
+                <td class="text-right"><strong>{{ "{:,.0f}".format(sale.total_amount - sale.amount_paid) }}</strong></td>
+            </tr>
+            {% endif %}
+        </table>
+
+        <div class="divider"></div>
+
+        <div class="footer">
+            <p>Thank you for shopping with us!</p>
+            <p>Please keep this receipt.</p>
+        </div>
+    </div>
+
+    <script>
+        // Automatically trigger print dialog when page loads
+        window.onload = function() {
+            setTimeout(function() { window.print(); }, 500); 
+        };
+    </script>
+</body>
+</html>
